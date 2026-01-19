@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { ArrowLeft, Mail, Loader2, CheckCircle, User as UserIcon, Building2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,8 +62,7 @@ export default function Auth() {
   });
 
   if (user) {
-    navigate('/dashboard');
-    return null;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleGoogleSignIn = async () => {
@@ -102,24 +101,24 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 p-6 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-10 border-b border-border/10 bg-background/80 backdrop-blur">
+        <div className="container max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <img 
-              src="/brand_logo.png" 
-              alt="Studymate" 
+            <img
+              src="/brand_logo.png"
+              alt="Studymate"
               className="w-8 h-8 object-contain"
             />
-            <span className="text-xl font-bold tracking-tight">
+            <span className="text-xl font-bold tracking-tight text-foreground">
               Study<span className="text-primary">mate</span>
             </span>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="gap-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -129,17 +128,16 @@ export default function Auth() {
       </header>
 
       {/* Main Content - Two Column Layout */}
-      <div className="flex-1 flex items-center justify-center p-6 pt-24">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
           {/* Left Column - Benefits */}
-          <div className="space-y-8">
+          <div className="space-y-8 order-2 lg:order-1">
             <div className="space-y-4">
-              <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
                 See Studymate<br />
                 <span className="text-primary">in Action</span>
               </h1>
-              <p className="text-lg text-slate-600 max-w-md">
+              <p className="text-base sm:text-lg text-muted-foreground max-w-md">
                 Get a personalized walkthrough of how our AI-powered learning platform can transform your career preparation.
               </p>
             </div>
@@ -148,36 +146,57 @@ export default function Auth() {
               {benefitsList.map((benefit, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <div className="mt-0.5">
-                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    <CheckCircle className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="text-slate-700">{benefit}</span>
+                  <span className="text-foreground/80">{benefit}</span>
                 </li>
               ))}
             </ul>
           </div>
 
+
           {/* Right Column - Auth Card */}
-          <div className="w-full max-w-md mx-auto lg:mx-0">
-            <Card className="border-slate-200 shadow-xl bg-white">
+          <div className="w-full max-w-md mx-auto lg:mx-0 order-1 lg:order-2">
+            <Card className="border-border shadow-xl bg-card">
               <CardContent className="pt-6 px-6 pb-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/50 p-1">
-                    <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Sign In</TabsTrigger>
-                    <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Sign Up</TabsTrigger>
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/40 p-1">
+                    <TabsTrigger
+                      value="login"
+                      className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Sign In
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="signup"
+                      className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Sign Up
+                    </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="login" className="space-y-4 focus-visible:outline-none">
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                  <TabsContent
+                    value="login"
+                    className="space-y-4 focus-visible:outline-none"
+                  >
+                    <form
+                      onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                      className="space-y-4"
+                    >
                       <div className="space-y-2">
                         <Label htmlFor="login-email">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="login-email"
                             type="email"
                             placeholder="name@example.com"
-                            className="pl-10 bg-slate-50/50"
-                            {...loginForm.register('email')}
+                            className="pl-10 bg-background"
+                            {...loginForm.register("email")}
                             disabled={isLoading}
                           />
                         </div>
@@ -191,13 +210,18 @@ export default function Auth() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="login-password">Password</Label>
-                          <a href="#" className="text-xs text-primary hover:underline">Forgot?</a>
+                          <a
+                            href="#"
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Forgot?
+                          </a>
                         </div>
                         <PasswordInput
                           id="login-password"
                           placeholder="••••••••"
-                          className="bg-slate-50/50"
-                          {...loginForm.register('password')}
+                          className="bg-background"
+                          {...loginForm.register("password")}
                           disabled={isLoading}
                         />
                         {loginForm.formState.errors.password && (
@@ -207,25 +231,38 @@ export default function Auth() {
                         )}
                       </div>
 
-                      <Button type="submit" className="w-full font-medium" disabled={isLoading} size="lg">
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isLoading ? 'Signing in...' : 'Sign In'}
+                      <Button
+                        type="submit"
+                        className="w-full font-medium"
+                        disabled={isLoading}
+                        size="lg"
+                      >
+                        {isLoading && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isLoading ? "Signing in..." : "Sign In"}
                       </Button>
                     </form>
                   </TabsContent>
 
-                  <TabsContent value="signup" className="space-y-4 focus-visible:outline-none">
-                    <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                  <TabsContent
+                    value="signup"
+                    className="space-y-4 focus-visible:outline-none"
+                  >
+                    <form
+                      onSubmit={signupForm.handleSubmit(onSignupSubmit)}
+                      className="space-y-4"
+                    >
                       <div className="space-y-2">
                         <Label htmlFor="signup-name">Full Name</Label>
                         <div className="relative">
-                          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="signup-name"
                             type="text"
                             placeholder="John Doe"
-                            className="pl-10 bg-slate-50/50"
-                            {...signupForm.register('fullName')}
+                            className="pl-10 bg-background"
+                            {...signupForm.register("fullName")}
                             disabled={isLoading}
                           />
                         </div>
@@ -239,13 +276,13 @@ export default function Auth() {
                       <div className="space-y-2">
                         <Label htmlFor="signup-email">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="signup-email"
                             type="email"
                             placeholder="name@example.com"
-                            className="pl-10 bg-slate-50/50"
-                            {...signupForm.register('email')}
+                            className="pl-10 bg-background"
+                            {...signupForm.register("email")}
                             disabled={isLoading}
                           />
                         </div>
@@ -261,8 +298,8 @@ export default function Auth() {
                         <PasswordInput
                           id="signup-password"
                           placeholder="••••••••"
-                          className="bg-slate-50/50"
-                          {...signupForm.register('password')}
+                          className="bg-background"
+                          {...signupForm.register("password")}
                           disabled={isLoading}
                         />
                         {signupForm.formState.errors.password && (
@@ -277,8 +314,8 @@ export default function Auth() {
                         <PasswordInput
                           id="signup-confirm"
                           placeholder="••••••••"
-                          className="bg-slate-50/50"
-                          {...signupForm.register('confirmPassword')}
+                          className="bg-background"
+                          {...signupForm.register("confirmPassword")}
                           disabled={isLoading}
                         />
                         {signupForm.formState.errors.confirmPassword && (
@@ -288,9 +325,16 @@ export default function Auth() {
                         )}
                       </div>
 
-                      <Button type="submit" className="w-full font-medium" disabled={isLoading} size="lg">
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isLoading ? 'Creating account...' : 'Create Account'}
+                      <Button
+                        type="submit"
+                        className="w-full font-medium"
+                        disabled={isLoading}
+                        size="lg"
+                      >
+                        {isLoading && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isLoading ? "Creating account..." : "Create Account"}
                       </Button>
                     </form>
                   </TabsContent>
@@ -299,17 +343,19 @@ export default function Auth() {
                 <div className="mt-6">
                   <div className="relative mb-6">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-slate-200" />
+                      <span className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-slate-400">Or continue with</span>
+                      <span className="bg-card px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
                     </div>
                   </div>
 
                   <Button
                     variant="outline"
                     type="button"
-                    className="w-full bg-white hover:bg-slate-50"
+                    className="w-full bg-card"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
                   >
@@ -319,15 +365,22 @@ export default function Auth() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="text-center mt-6">
-              <p className="text-xs text-slate-400">
-                By clicking continue, you agree to our <a href="#" className="underline hover:text-slate-600">Terms of Service</a> and <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>
+              <p className="text-xs text-muted-foreground">
+                By clicking continue, you agree to our{" "}
+                <a href="#" className="underline hover:text-foreground">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="#" className="underline hover:text-foreground">
+                  Privacy Policy
+                </a>
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
