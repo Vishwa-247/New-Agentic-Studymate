@@ -109,17 +109,17 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
           </div>
 
           {/* Enhanced Preview Content */}
-          <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900">
-            <div className="bg-gray-50 dark:bg-gray-800 border-b p-3">
+          <div className="border border-border rounded-lg overflow-hidden bg-card">
+            <div className="bg-muted border-b border-border p-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm">Document Preview</h4>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
-                    {file.type === 'application/pdf' ? 'PDF' : 'DOCX'}
+                    {file.type === "application/pdf" ? "PDF" : "DOCX"}
                   </Badge>
                   {!isProcessing && (
-                    <div className="flex items-center gap-1 text-xs text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="flex items-center gap-1 text-xs text-primary">
+                      <div className="w-2 h-2 bg-primary rounded-full" />
                       Processed
                     </div>
                   )}
@@ -138,25 +138,25 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
               ) : (
                 <div className="space-y-4">
                   {/* Document thumbnail/icon */}
-                  <div className="flex items-center justify-center py-4 bg-gray-50 dark:bg-gray-800 rounded border-2 border-dashed border-gray-300">
+                  <div className="flex items-center justify-center py-4 bg-muted rounded border-2 border-dashed border-border">
                     <div className="text-center">
                       <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm font-medium">{file.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {file.type === 'application/pdf' ? 'PDF Document' : 'Word Document'}
+                        {file.type === "application/pdf" ? "PDF Document" : "Word Document"}
                       </p>
                     </div>
                   </div>
                   
                   {/* Content preview */}
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <div className="bg-muted rounded-lg p-4">
                     <h5 className="font-semibold mb-3 text-sm">Extracted Content Preview:</h5>
                     <div className="max-h-40 overflow-y-auto">
                       <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono leading-relaxed">
-                        {analysisData?.extracted_text ? 
-                          analysisData.extracted_text.substring(0, 500) + (analysisData.extracted_text.length > 500 ? '...' : '') :
-                          extractedText.substring(0, 500) + '...'
-                        }
+                        {analysisData?.extracted_text
+                          ? analysisData.extracted_text.substring(0, 500) +
+                            (analysisData.extracted_text.length > 500 ? "..." : "")
+                          : extractedText.substring(0, 500) + "..."}
                       </pre>
                     </div>
                   </div>
@@ -169,55 +169,57 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
           {showAnalysis && !isProcessing && (
             <div className="space-y-4">
               <h4 className="font-medium text-sm">AI Analysis Results</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                  <div className="text-lg font-bold text-primary">
-                    {analysisData?.analysis?.sections_analysis ? 
-                      Object.keys(analysisData.analysis.sections_analysis).length : '-'
-                    }
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                    <div className="text-lg font-bold text-primary">
+                      {analysisData?.analysis?.sections_analysis
+                        ? Object.keys(analysisData.analysis.sections_analysis).length
+                        : "-"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Sections Found</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Sections Found</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                  <div className="text-lg font-bold text-primary">
-                    {analysisData?.analysis?.keywords_found ? 
-                      analysisData.analysis.keywords_found.length : '-'
-                    }
+                  <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                    <div className="text-lg font-bold text-primary">
+                      {analysisData?.analysis?.keywords_found
+                        ? analysisData.analysis.keywords_found.length
+                        : "-"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Skills Detected</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Skills Detected</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                  <div className="text-lg font-bold text-primary">
-                    {analysisData?.word_count || 
-                      (analysisData?.extracted_text ? analysisData.extracted_text.split(' ').length : '-')
-                    }
+                  <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                    <div className="text-lg font-bold text-primary">
+                      {analysisData?.word_count ||
+                        (analysisData?.extracted_text
+                          ? analysisData.extracted_text.split(" ").length
+                          : "-")}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Words</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Words</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                  <div className="text-lg font-bold text-primary">
-                    {analysisData?.page_count || 
-                      (analysisData?.extracted_text ? Math.ceil(analysisData.extracted_text.length / 3000) : '-')
-                    }
+                  <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                    <div className="text-lg font-bold text-primary">
+                      {analysisData?.page_count ||
+                        (analysisData?.extracted_text
+                          ? Math.ceil(analysisData.extracted_text.length / 3000)
+                          : "-")}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Pages</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Pages</div>
                 </div>
-              </div>
               
               {/* Key Insights */}
-              <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+              <div className="bg-muted border border-border rounded-lg p-4">
                 {analysisData?.analysis ? (
                   <div className="space-y-3">
-                    <h5 className="font-semibold text-sm text-gray-800 dark:text-gray-200">AI Analysis Summary</h5>
+                    <h5 className="font-semibold text-sm">AI Analysis Summary</h5>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Overall Score:</span>
-                        <span className="text-xs font-bold text-primary">{analysisData.analysis.overall_score || 'N/A'}/100</span>
+                        <span className="text-xs font-medium text-muted-foreground">Overall Score:</span>
+                        <span className="text-xs font-bold text-primary">{analysisData.analysis.overall_score || "N/A"}/100</span>
                       </div>
                       {analysisData.analysis.strengths && analysisData.analysis.strengths.length > 0 && (
                         <div>
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Top Strengths:</span>
-                          <ul className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-4">
+                          <span className="text-xs font-medium text-muted-foreground">Top Strengths:</span>
+                          <ul className="text-xs text-muted-foreground mt-1 ml-4">
                             {analysisData.analysis.strengths.slice(0, 2).map((strength, index) => (
                               <li key={index} className="list-disc">{strength}</li>
                             ))}
@@ -226,7 +228,7 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
                       )}
                       {analysisData.analysis.keywords_found && analysisData.analysis.keywords_found.length > 0 && (
                         <div>
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Key Skills Found:</span>
+                          <span className="text-xs font-medium text-muted-foreground">Key Skills Found:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {analysisData.analysis.keywords_found.slice(0, 5).map((keyword, index) => (
                               <span key={index} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
@@ -240,8 +242,8 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
                   </div>
                 ) : (
                   <div>
-                    <h5 className="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Analysis Available After Backend Processing</h5>
-                    <p className="text-xs text-gray-700 dark:text-gray-300">
+                    <h5 className="font-semibold text-sm mb-2">Analysis Available After Backend Processing</h5>
+                    <p className="text-xs text-muted-foreground">
                       Upload your resume through the Profile Builder to get AI-powered insights and analysis.
                     </p>
                   </div>
@@ -253,7 +255,7 @@ export default function ResumePreview({ file, showAnalysis = false, analysisData
           {isExpanded && !isProcessing && (
             <div className="mt-4">
               <h4 className="font-medium text-sm mb-3">Complete Document Content</h4>
-              <div className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+              <div className="max-h-96 overflow-y-auto border border-border rounded-lg p-4 bg-muted">
                 <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono leading-relaxed">
                   {analysisData?.extracted_text || extractedText}
                 </pre>

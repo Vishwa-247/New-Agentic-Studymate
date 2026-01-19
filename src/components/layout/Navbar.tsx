@@ -42,12 +42,9 @@ const Navbar = () => {
     };
     window.addEventListener("scroll", handleScroll);
 
-    // Force Light Mode
-    document.documentElement.classList.remove('dark');
-    localStorage.theme = 'light';
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard" },
@@ -67,8 +64,9 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white transition-all duration-300">
+    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur transition-all duration-300">
       <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
@@ -154,7 +152,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/auth"
-                  className="px-6 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-all rounded-full shadow-lg"
+                  className="px-6 py-2.5 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 transition-all rounded-full shadow-lg"
                 >
                   Get Started
                 </Link>
@@ -236,7 +234,7 @@ const Navbar = () => {
               <Link
                 to="/auth"
                 onClick={() => setIsMenuOpen(false)}
-                className="w-full px-4 py-3 text-center text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                className="w-full px-4 py-3 text-center text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
               >
                 Sign In
               </Link>

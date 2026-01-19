@@ -86,7 +86,7 @@ export const ContentRenderer = ({ content }: ContentRendererProps) => {
       pre.classList.add('has-copy-button', 'relative', 'group');
       
       const copyButton = document.createElement('button');
-      copyButton.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 dark:hover:bg-gray-700';
+      copyButton.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-card text-foreground px-3 py-1.5 rounded-md border border-border text-xs font-medium flex items-center gap-1.5 hover:bg-muted';
       copyButton.innerHTML = `
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -124,9 +124,9 @@ export const ContentRenderer = ({ content }: ContentRendererProps) => {
   if (isHTML) {
     // Render HTML directly with proper styling
     return (
-      <div 
+      <div
         ref={containerRef}
-        className="prose prose-slate dark:prose-invert max-w-none"
+        className="prose prose-slate max-w-none"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
     );
@@ -134,7 +134,7 @@ export const ContentRenderer = ({ content }: ContentRendererProps) => {
   
   // Fallback to markdown for old content
   return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
+    <div className="prose prose-slate max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

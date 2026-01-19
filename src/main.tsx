@@ -1,10 +1,14 @@
-import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-import { ResumeProvider } from './context/ResumeContext';
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import { ResumeProvider } from "./context/ResumeContext";
+import { AppThemeProvider } from "./components/theme/AppThemeProvider";
 
 createRoot(document.getElementById("root")!).render(
-  <ResumeProvider>
-    <App />
-  </ResumeProvider>
+  <AppThemeProvider>
+    <ResumeProvider>
+      <App />
+    </ResumeProvider>
+  </AppThemeProvider>
 );
+

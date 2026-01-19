@@ -116,13 +116,18 @@ export default function SkillsForm() {
     return profile?.skills?.filter(skill => skill.category === category) || [];
   };
 
-  const getLevelColor = (level: Skill['level']) => {
+  const getLevelColor = (level: Skill["level"]) => {
     switch (level) {
-      case "Beginner": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "Intermediate": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "Advanced": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "Expert": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+      case "Beginner":
+        return "bg-muted text-muted-foreground";
+      case "Intermediate":
+        return "bg-primary/10 text-primary";
+      case "Advanced":
+        return "bg-secondary text-secondary-foreground";
+      case "Expert":
+        return "bg-primary text-primary-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 

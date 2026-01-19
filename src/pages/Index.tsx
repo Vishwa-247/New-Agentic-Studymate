@@ -21,8 +21,7 @@ import SystemFlowDemo from "@/components/landing/SystemFlowDemo";
 
 export default function Index() {
   return (
-    <div className="relative min-h-screen bg-white text-foreground overflow-x-hidden">
-      
+    <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
 
 
       {/* Hero Section */}
@@ -72,11 +71,11 @@ export default function Index() {
               {/* Trust Badges */}
               <div className="mt-10 flex items-center gap-6 justify-center lg:justify-start text-muted-foreground text-sm">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   <span>No credit card</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   <span>Free tier available</span>
                 </div>
               </div>
@@ -98,7 +97,7 @@ export default function Index() {
         <div className="container max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/5 text-purple-600 dark:text-purple-400 text-xs font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
                 <Brain className="h-3 w-3" />
                 <span>Module 1: Agent Orchestrator</span>
               </div>
@@ -134,7 +133,7 @@ export default function Index() {
               <InterviewChatDemo />
             </div>
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
                 <BookOpen className="h-3 w-3" />
                 <span>Module 2: Interactive Courses</span>
               </div>
@@ -164,7 +163,7 @@ export default function Index() {
         <div className="container max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-600 dark:text-orange-400 text-xs font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
                 <Users className="h-3 w-3" />
                 <span>Module 3: Project Studio</span>
               </div>
@@ -202,7 +201,7 @@ export default function Index() {
       <section className="py-32 px-6 bg-muted/20">
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 text-xs font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
               <MessageSquare className="h-3 w-3" />
               <span>Module 4: Production Thinking Interviews</span>
             </div>
@@ -247,7 +246,7 @@ export default function Index() {
               <DSAVisualizerDemo />
             </div>
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
                 <Code2 className="h-3 w-3" />
                 <span>Module 5: DSA Visualizer</span>
               </div>
@@ -276,7 +275,7 @@ export default function Index() {
       <section className="py-32 px-6 bg-muted/20">
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-cyan-600 dark:text-cyan-400 text-xs font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-6">
               <BarChart3 className="h-3 w-3" />
               <span>Module 6: Career Intelligence</span>
             </div>
@@ -290,13 +289,13 @@ export default function Index() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
             {[
-              { value: "Learning", label: "Growth Tracked", color: "text-blue-500" },
-              { value: "Interview", label: "Thinking Score", color: "text-purple-500" },
-              { value: "DSA", label: "Pattern Mastery", color: "text-emerald-500" },
-              { value: "Weak", label: "Areas Flagged", color: "text-orange-500" },
+              { value: "Learning", label: "Growth Tracked" },
+              { value: "Interview", label: "Thinking Score" },
+              { value: "DSA", label: "Pattern Mastery" },
+              { value: "Weak", label: "Areas Flagged" },
             ].map((stat, i) => (
               <div key={i} className="p-6 rounded-2xl bg-card border border-border/60 text-center matte-texture">
-                <div className={`text-2xl font-bold mb-1 ${stat.color}`}>{stat.value}</div>
+                <div className="text-2xl font-bold mb-1 text-primary">{stat.value}</div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{stat.label}</div>
               </div>
             ))}
@@ -311,10 +310,10 @@ export default function Index() {
                 { skill: "Clarification Habit", progress: 85, trend: "+5% this week" },
               ].map((item, i) => (
                 <div key={i}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">{item.skill}</span>
-                    <span className="text-xs text-emerald-500">{item.trend}</span>
-                  </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium">{item.skill}</span>
+                      <span className="text-xs text-primary">{item.trend}</span>
+                    </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-primary rounded-full transition-all duration-1000"

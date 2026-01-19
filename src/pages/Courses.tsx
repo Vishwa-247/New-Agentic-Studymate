@@ -420,59 +420,59 @@ const Courses = () => {
       {/* Stats Summary */}
       {!isLoading && courses.length > 0 && (
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <BookOpen className="w-8 h-8 text-blue-500" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold">{courses.length}</p>
-                  <p className="text-muted-foreground">Total Courses</p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <BookOpen className="w-8 h-8 text-primary" />
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold">{courses.length}</p>
+                    <p className="text-muted-foreground">Total Courses</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <TrendingUp className="w-8 h-8 text-green-500" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold">
-                    {courses.filter(c => c.content?.status === 'published' || c.status === 'published').length}
-                  </p>
-                  <p className="text-muted-foreground">Completed</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <TrendingUp className="w-8 h-8 text-primary" />
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold">
+                      {courses.filter(c => c.content?.status === 'published' || c.status === 'published').length}
+                    </p>
+                    <p className="text-muted-foreground">Completed</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Loader2 className="w-8 h-8 text-amber-500" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold">
-                    {courses.filter(c => c.content?.status === 'generating' || c.content?.status === 'processing').length}
-                  </p>
-                  <p className="text-muted-foreground">In Progress</p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <Loader2 className="w-8 h-8 text-primary" />
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold">
+                      {courses.filter(c => c.content?.status === 'generating' || c.content?.status === 'processing').length}
+                    </p>
+                    <p className="text-muted-foreground">In Progress</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="w-8 h-8 text-purple-500" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold">
-                    {Math.round(courses.reduce((acc, course) => acc + (course.completion_time_estimate || 0), 0) / 60)}h
-                  </p>
-                  <p className="text-muted-foreground">Total Time</p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <Clock className="w-8 h-8 text-primary" />
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold">
+                      {Math.round(courses.reduce((acc, course) => acc + (course.completion_time_estimate || 0), 0) / 60)}h
+                    </p>
+                    <p className="text-muted-foreground">Total Time</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </div>
       )}
     </Container>

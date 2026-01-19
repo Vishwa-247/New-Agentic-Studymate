@@ -666,10 +666,10 @@ const Dashboard = () => {
                             <span
                               className={`text-xs px-2 py-1 rounded-full ${
                                 course.status === "completed"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-primary/10 text-primary"
                                   : course.status === "generating"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-gray-100 text-gray-800"
+                                  ? "bg-secondary text-secondary-foreground"
+                                  : "bg-muted text-muted-foreground"
                               }`}
                             >
                               {course.status}

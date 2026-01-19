@@ -45,36 +45,36 @@ const CourseGenerationStatus = ({
   
   const statusDisplay = () => {
     switch (status) {
-      case 'generating':
+      case "generating":
         return (
-          <div className="flex items-center text-amber-500">
+          <div className="flex items-center text-primary">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             <span>Generating with AI</span>
           </div>
         );
-      case 'generating_flashcards':
+      case "generating_flashcards":
         return (
-          <div className="flex items-center text-blue-500">
+          <div className="flex items-center text-primary">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             <span>Enhancing with flashcards</span>
           </div>
         );
-      case 'complete':
+      case "complete":
         return (
-          <div className="flex items-center text-green-500">
+          <div className="flex items-center text-primary">
             <span>Complete</span>
           </div>
         );
-      case 'error':
+      case "error":
         return (
-          <div className="flex items-center text-red-500">
+          <div className="flex items-center text-destructive">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <span>Failed</span>
           </div>
         );
-      case 'pending':
+      case "pending":
         return (
-          <div className="flex items-center text-blue-500">
+          <div className="flex items-center text-muted-foreground">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             <span>Pending</span>
           </div>
@@ -109,10 +109,8 @@ const CourseGenerationStatus = ({
         <div className="space-y-4">
           <Progress value={progress} className="h-1.5" />
           
-          {status === 'error' && errorMessage && (
-            <div className="text-sm text-red-500 mt-2 mb-2">
-              {errorMessage}
-            </div>
+          {status === "error" && errorMessage && (
+            <div className="text-sm text-destructive mt-2 mb-2">{errorMessage}</div>
           )}
           
           {status === 'complete' && (

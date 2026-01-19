@@ -118,7 +118,7 @@ const InterviewSetup = ({ onSubmit, onBack, isLoading = false }: InterviewSetupP
               value={role}
               onChange={(e) => setRole(e.target.value)}
               placeholder="e.g., Software Engineer"
-              className="w-full px-4 py-2 bg-white/20 dark:bg-black/20 border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-foreground"
+              className="w-full px-4 py-2 bg-background/60 border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-foreground"
             />
             <div className="pt-2 flex flex-wrap gap-2">
               {popularRoles.map((popularRole) => (

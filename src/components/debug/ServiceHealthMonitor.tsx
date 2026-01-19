@@ -18,10 +18,14 @@ const ServiceHealthMonitor: React.FC<{ className?: string }> = ({ className }) =
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'online': return 'text-green-500 bg-green-50';
-      case 'offline': return 'text-red-500 bg-red-50';
-      case 'error': return 'text-yellow-500 bg-yellow-50';
-      default: return 'text-gray-500 bg-gray-50';
+      case "online":
+        return "text-primary bg-primary/10";
+      case "offline":
+        return "text-destructive bg-destructive/10";
+      case "error":
+        return "text-destructive bg-destructive/10";
+      default:
+        return "text-muted-foreground bg-muted";
     }
   };
 
