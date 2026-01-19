@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, LogOut, Zap } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,30 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-// Auth hook - reads from Supabase localStorage
-const useAuth = () => {
-    const [user, setUser] = useState<any>(null);
-    useEffect(() => {
-        const stored = localStorage.getItem('sb-kvkccowxwbanxgrvlnve-auth-token');
-        if (stored) {
-             try { 
-                 const parsed = JSON.parse(stored);
-                 setUser(parsed.user);
-             } catch(e) {}
-        }
-    }, []);
-    return { user, signOut: () => { localStorage.removeItem('sb-kvkccowxwbanxgrvlnve-auth-token'); setUser(null); window.location.reload(); } };
-};
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
-
-  // Check if we're on the landing page
-  const isLandingPage = location.pathname === "/";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -64,9 +47,11 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur transition-all duration-300">
+    <nav
+      className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur transition-all duration-300"
+      data-scrolled={isScrolled ? "true" : "false"}
+    >
       <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
@@ -160,15 +145,21 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <div className="flex md:hidden items-center space-x-4">
-            <button
-                className="text-foreground"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle menu"
+          {/* Mobile Menu Toggle + quick auth */}
+          <div className="flex md:hidden items-center gap-2">
+            {!user && (
+              <Button asChild size="sm">
+                <Link to="/auth">Sign in</Link>
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
             >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
       </div>
@@ -176,7 +167,7 @@ const Navbar = () => {
       {/* Mobile Navigation */}
       {isMenuOpen && (
         <div className="md:hidden fixed inset-x-0 top-[4rem] bg-background/95 backdrop-blur-md h-screen z-50 p-6 flex flex-col space-y-8 border-t border-border/10 transition-all duration-300">
-          {user && !isLandingPage && (
+          {user && (
             <nav className="flex flex-col space-y-6">
               {navLinks.map((link) => (
                 <Link
