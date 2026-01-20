@@ -26,8 +26,10 @@ from typing import Any, Dict, List, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 # Load environment variables from backend root
@@ -54,6 +56,43 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth (used by API gateway)
+security = HTTPBearer(auto_error=False)
+JWT_SECRET = os.getenv("JWT_SECRET")  # API gateway token
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")  # Supabase JWT secret (optional)
+
+def verify_request_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+    token = credentials.credentials
+
+    if JWT_SECRET:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user_id = payload.get("uid") or payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    if SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"verify_aud": True},
+            )
+            user_id = payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")

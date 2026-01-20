@@ -97,26 +97,38 @@ async def resolve_user_uuid_by_email(email: str) -> Optional[str]:
     except Exception:
         return None
 
-async def forward_to_agent(agent_name: str, path: str, method: str = "GET", data: dict = None, headers: dict = None):
-    """Forward request to specific agent service"""
+async def forward_to_agent(
+    agent_name: str,
+    path: str,
+    method: str = "GET",
+    data: dict = None,
+    headers: dict = None,
+):
+    """Forward request to specific agent service.
+
+    Important: callers should pass through the incoming Authorization header so
+    downstream services can re-verify auth.
+    """
     if agent_name not in AGENT_SERVICES:
         raise HTTPException(status_code=404, detail=f"Agent {agent_name} not found")
-    
+
     agent_url = AGENT_SERVICES[agent_name]
     url = f"{agent_url}{path}"
-    
+
+    fwd_headers = headers or {}
+
     async with httpx.AsyncClient() as client:
         if method == "GET":
-            response = await client.get(url, headers=headers)
+            response = await client.get(url, headers=fwd_headers)
         elif method == "POST":
-            response = await client.post(url, json=data, headers=headers)
+            response = await client.post(url, json=data, headers=fwd_headers)
         elif method == "PUT":
-            response = await client.put(url, json=data, headers=headers)
+            response = await client.put(url, json=data, headers=fwd_headers)
         elif method == "DELETE":
-            response = await client.delete(url, headers=headers)
+            response = await client.delete(url, headers=fwd_headers)
         else:
             raise HTTPException(status_code=405, detail="Method not allowed")
-    
+
     return response.json()
 
 @app.get("/")
@@ -242,40 +254,57 @@ async def generate_course(course_data: dict, user_id: str = Depends(verify_token
     return await forward_to_agent("course-generation", "/generate", "POST", course_data)
 
 @app.post("/courses/generate-parallel")
-async def generate_course_parallel(course_data: dict):
-    """Generate course with parallel AI agents (Oboe-style)"""
-    return await forward_to_agent("course-generation", "/generate-course-parallel", "POST", course_data)
+async def generate_course_parallel(course_data: dict, request: Request, user_id: str = Depends(verify_token)):
+    """Generate course with parallel AI agents (Oboe-style)."""
+    # Pass through the Authorization header so downstream can verify.
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("course-generation", "/generate-course-parallel", "POST", course_data, headers=headers)
 
 @app.get("/courses")
-async def get_courses(user_id: str = Depends(verify_token)):
-    return await forward_to_agent("course-generation", f"/courses?user_id={user_id}", "GET")
+async def get_courses(request: Request, user_id: str = Depends(verify_token)):
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("course-generation", f"/courses", "GET", headers=headers)
 
 @app.get("/courses/{course_id}")
-async def get_course(course_id: str, user_id: str = Depends(verify_token)):
-    return await forward_to_agent("course-generation", f"/courses/{course_id}", "GET")
+async def get_course(course_id: str, request: Request, user_id: str = Depends(verify_token)):
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("course-generation", f"/courses/{course_id}", "GET", headers=headers)
 
 @app.get("/courses/{course_id}/content")
-async def get_course_content(course_id: str, user_id: str = Depends(verify_token)):
-    return await forward_to_agent("course-generation", f"/courses/{course_id}/content", "GET")
+async def get_course_content(course_id: str, request: Request, user_id: str = Depends(verify_token)):
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("course-generation", f"/courses/{course_id}/content", "GET", headers=headers)
 
 @app.delete("/courses/{course_id}")
-async def delete_course(course_id: str, user_id: str = Depends(verify_token)):
+async def delete_course(course_id: str, request: Request, user_id: str = Depends(verify_token)):
     """Delete course and all related content"""
-    return await forward_to_agent("course-generation", f"/courses/{course_id}", "DELETE")
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("course-generation", f"/courses/{course_id}", "DELETE", headers=headers)
 
 # Interview Routes
 @app.post("/interviews/start")
-async def start_interview(interview_data: dict, user_id: str = Depends(verify_token)):
+async def start_interview(interview_data: dict, request: Request, user_id: str = Depends(verify_token)):
     interview_data["user_id"] = user_id
-    return await forward_to_agent("interview-coach", "/start", "POST", interview_data)
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("interview-coach", "/start", "POST", interview_data, headers=headers)
 
 @app.get("/interviews")
-async def get_interviews(user_id: str = Depends(verify_token)):
-    return await forward_to_agent("interview-coach", f"/interviews?user_id={user_id}", "GET")
+async def get_interviews(request: Request, user_id: str = Depends(verify_token)):
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("interview-coach", f"/interviews?user_id={user_id}", "GET", headers=headers)
 
 @app.get("/interviews/{interview_id}")
-async def get_interview(interview_id: str, user_id: str = Depends(verify_token)):
-    return await forward_to_agent("interview-coach", f"/interviews/{interview_id}", "GET")
+async def get_interview(interview_id: str, request: Request, user_id: str = Depends(verify_token)):
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("interview-coach", f"/interviews/{interview_id}", "GET", headers=headers)
 
 @app.post("/interviews/{interview_id}/analyze")
 async def analyze_interview(interview_id: str, analysis_data: dict, user_id: str = Depends(verify_token)):
@@ -290,12 +319,16 @@ async def generate_technical(interview_data: dict, user_id: str = Depends(verify
 async def submit_interview_answer(
     interview_id: str,
     request: Request,
+    user_id: str = Depends(verify_token),
     audio: UploadFile | None = File(None),
     question_id: str | None = Form(None),
 ):
     """Forward answer uploads (multipart) to interview-coach service."""
     try:
         target = f"{AGENT_SERVICES['interview-coach']}/interviews/{interview_id}/answer"
+        auth = request.headers.get("Authorization")
+        headers = {"Authorization": auth} if auth else {}
+
         async with httpx.AsyncClient(timeout=60.0) as client:
             if audio is not None:
                 files = {"audio": (audio.filename, await audio.read(), audio.content_type or "application/octet-stream")}
@@ -310,11 +343,11 @@ async def submit_interview_answer(
                         data["facial_data"] = facial_data_str
                 except Exception:
                     pass
-                resp = await client.post(target, files=files, data=data)
+                resp = await client.post(target, headers=headers, files=files, data=data)
             else:
                 # JSON fallback
                 payload = {"question_id": question_id or "0", "answer": ""}
-                resp = await client.post(target, json=payload)
+                resp = await client.post(target, headers=headers, json=payload)
         return resp.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

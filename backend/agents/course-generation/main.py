@@ -25,8 +25,10 @@ load_dotenv(dotenv_path=env_path)
 
 import httpx
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 # Configure logging
@@ -43,6 +45,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth (used by API gateway)
+security = HTTPBearer(auto_error=False)
+JWT_SECRET = os.getenv("JWT_SECRET")  # API gateway token
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")  # Supabase JWT secret (optional)
+
+def verify_request_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """Verify caller identity from Bearer token.
+
+    Accepts either:
+    - API Gateway HS256 token (JWT_SECRET)
+    - Supabase HS256 token (SUPABASE_JWT_SECRET)
+
+    Returns the authenticated user_id.
+    """
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+    token = credentials.credentials
+
+    # 1) Try gateway token
+    if JWT_SECRET:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user_id = payload.get("uid") or payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    # 2) Try Supabase token
+    if SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"verify_aud": True},
+            )
+            user_id = payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 # ============================================
 # API Keys - Dedicated pools per service type
@@ -260,36 +309,40 @@ async def health_check():
     }
 
 @app.post("/generate-course-parallel")
-async def generate_course_parallel(request: CourseGenerationRequest, background_tasks: BackgroundTasks):
+async def generate_course_parallel(
+    request: CourseGenerationRequest,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(verify_request_user_id),
+):
     """Generate course with parallel AI agents"""
-    
+
     if not GEMINI_API_KEYS:
         raise HTTPException(status_code=500, detail="Gemini API key not configured")
-    
+
     try:
-        logger.info(f"🚀 Starting course generation: {request.topic}")
-        
-        # Create course in database
-        course_id = await create_course(request.topic, request.userId)
-        job_id = await create_generation_job(course_id, request.userId)
-        
+        logger.info(f"🚀 Starting course generation: {request.topic} (user={user_id})")
+
+        # Create course in database (ignore request.userId; trust token)
+        course_id = await create_course(request.topic, user_id)
+        job_id = await create_generation_job(course_id, user_id)
+
         logger.info(f"✅ Course created: {course_id}, Job: {job_id}")
-        
+
         # Start background generation
         background_tasks.add_task(
             generate_in_parallel,
             course_id,
             request.topic,
-            request.userId
+            user_id,
         )
-        
+
         return {
             "success": True,
             "courseId": course_id,
             "jobId": job_id,
-            "estimatedTime": 40
+            "estimatedTime": 40,
         }
-        
+
     except Exception as e:
         logger.error(f"💥 Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -298,9 +351,37 @@ async def generate_course_parallel(request: CourseGenerationRequest, background_
 # CRUD/Read Endpoints (REST)
 # -------------------------
 
+async def _fetch_course(course_id: str) -> dict:
+    """Fetch a single course row from Supabase using the service key."""
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{SUPABASE_URL}/rest/v1/courses",
+            headers={
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            },
+            params={
+                "id": f"eq.{course_id}",
+                "select": "*",
+                "limit": "1",
+            },
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data[0] if data else {}
+
+async def _require_course_owner(course_id: str, user_id: str) -> dict:
+    course = await _fetch_course(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if str(course.get("user_id")) != str(user_id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return course
+
+
 @app.get("/courses")
-async def list_user_courses(user_id: str):
-    """Return all courses for a user (newest first)."""
+async def list_user_courses(user_id: str = Depends(verify_request_user_id)):
+    """Return all courses for the authenticated user (newest first)."""
     try:
         async with httpx.AsyncClient() as client:
             r = await client.get(
@@ -321,33 +402,26 @@ async def list_user_courses(user_id: str):
         logger.error(f"Error listing courses: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/courses/{course_id}")
-async def get_course(course_id: str):
-    """Return a single course by id."""
+async def get_course(course_id: str, user_id: str = Depends(verify_request_user_id)):
+    """Return a single course by id (owner-only)."""
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{SUPABASE_URL}/rest/v1/courses",
-                headers={
-                    "apikey": SUPABASE_SERVICE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                },
-                params={
-                    "id": f"eq.{course_id}",
-                    "select": "*",
-                },
-            )
-            r.raise_for_status()
-            data = r.json()
-            return data[0] if data else {}
+        course = await _require_course_owner(course_id, user_id)
+        return course
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting course: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/courses/{course_id}/content")
-async def get_course_content(course_id: str):
-    """Return all course content for a given course id."""
+async def get_course_content(course_id: str, user_id: str = Depends(verify_request_user_id)):
+    """Return all course content for a given course id (owner-only)."""
     try:
+        await _require_course_owner(course_id, user_id)
+
         headers = {
             "apikey": SUPABASE_SERVICE_KEY,
             "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
@@ -378,70 +452,70 @@ async def get_course_content(course_id: str):
                 "flashcards": flashcards_r.json(),
                 "mcqs": mcqs_r.json(),
             }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting course content: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/courses/{course_id}")
-async def delete_course(course_id: str):
-    """Delete course and all related content (cascade delete)"""
+async def delete_course(course_id: str, user_id: str = Depends(verify_request_user_id)):
+    """Delete course and all related content (owner-only)."""
     try:
-        logger.info(f"🗑️  Deleting course: {course_id}")
+        await _require_course_owner(course_id, user_id)
+
+        logger.info(f"🗑️  Deleting course: {course_id} (user={user_id})")
         headers = {
             "apikey": SUPABASE_SERVICE_KEY,
             "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
         }
-        
+
         async with httpx.AsyncClient() as client:
-            # Delete course (will cascade to related tables if foreign keys are set up)
-            # If cascade doesn't work, delete related content first
-            try:
-                # Try to delete related content first (in case cascade isn't configured)
-                related_tables = [
-                    "course_chapters",
-                    "course_flashcards",
-                    "course_mcqs",
-                    "course_articles",
-                    "course_word_games",
-                    "course_audio",
-                    "course_resources",
-                    "course_suggestions",
-                    "course_generation_jobs"
-                ]
-                
-                for table in related_tables:
-                    try:
-                        await client.delete(
-                            f"{SUPABASE_URL}/rest/v1/{table}",
-                            headers=headers,
-                            params={"course_id": f"eq.{course_id}"}
-                        )
-                    except Exception as e:
-                        logger.debug(f"Could not delete from {table}: {e} (may not exist)")
-                
-                # Now delete the course itself
-                response = await client.delete(
-                    f"{SUPABASE_URL}/rest/v1/courses",
-                    headers=headers,
-                    params={"id": f"eq.{course_id}"}
-                )
-                
-                if response.status_code == 204:
-                    logger.info(f"✅ Course {course_id} deleted successfully")
-                    return {"success": True, "message": "Course deleted successfully"}
-                elif response.status_code == 404:
-                    logger.warning(f"⚠️ Course {course_id} not found")
-                    return {"success": False, "message": "Course not found"}
-                else:
-                    logger.error(f"❌ Failed to delete course: {response.status_code} - {response.text}")
-                    raise HTTPException(status_code=500, detail="Failed to delete course")
-                    
-            except httpx.HTTPStatusError as e:
-                logger.error(f"💥 HTTP error deleting course: {e.response.status_code} - {e.response.text}")
-                raise HTTPException(status_code=e.response.status_code, detail=str(e))
-                
+            # Try to delete related content first (in case cascade isn't configured)
+            related_tables = [
+                "course_chapters",
+                "course_flashcards",
+                "course_mcqs",
+                "course_articles",
+                "course_word_games",
+                "course_audio",
+                "course_resources",
+                "course_suggestions",
+                "course_generation_jobs",
+            ]
+
+            for table in related_tables:
+                try:
+                    await client.delete(
+                        f"{SUPABASE_URL}/rest/v1/{table}",
+                        headers=headers,
+                        params={"course_id": f"eq.{course_id}"},
+                    )
+                except Exception as e:
+                    logger.debug(f"Could not delete from {table}: {e} (may not exist)")
+
+            # Now delete the course itself
+            response = await client.delete(
+                f"{SUPABASE_URL}/rest/v1/courses",
+                headers=headers,
+                params={"id": f"eq.{course_id}"},
+            )
+
+            if response.status_code == 204:
+                logger.info(f"✅ Course {course_id} deleted successfully")
+                return {"success": True, "message": "Course deleted successfully"}
+            if response.status_code == 404:
+                logger.warning(f"⚠️ Course {course_id} not found")
+                return {"success": False, "message": "Course not found"}
+
+            logger.error(f"❌ Failed to delete course: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=500, detail="Failed to delete course")
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"💥 Error deleting course: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 async def create_course(topic: str, user_id: str) -> str:

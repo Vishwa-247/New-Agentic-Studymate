@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import json
@@ -138,6 +138,43 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth (used by API gateway)
+security = HTTPBearer(auto_error=False)
+JWT_SECRET = os.getenv("JWT_SECRET")  # API gateway token
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")  # Supabase JWT secret (optional)
+
+def verify_request_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+    token = credentials.credentials
+
+    if JWT_SECRET:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user_id = payload.get("uid") or payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    if SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"verify_aud": True},
+            )
+            user_id = payload.get("sub")
+            if user_id:
+                return str(user_id)
+        except JWTError:
+            pass
+
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 # Helper functions
 async def update_analytics(user_id: str):
@@ -461,9 +498,12 @@ async def health_check():
 
 # Progress management
 @app.post("/progress", response_model=DSAProgress)
-async def update_progress(progress: DSAProgress):
+async def update_progress(progress: DSAProgress, user_id: str = Depends(verify_request_user_id)):
     """Update user's progress on a specific problem"""
     try:
+        if str(progress.user_id) != str(user_id):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         # Update or insert progress
         result = await progress_collection.update_one(
             {
@@ -490,15 +530,18 @@ async def update_progress(progress: DSAProgress):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/progress/{user_id}")
-async def get_progress(user_id: str):
-    """Get all progress for a user"""
+async def get_progress(user_id: str, authed_user_id: str = Depends(verify_request_user_id)):
+    """Get all progress for the authenticated user"""
     try:
+        if str(user_id) != str(authed_user_id):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         progress_items = await progress_collection.find({"user_id": user_id}).to_list(None)
-        
+
         # Convert ObjectId to string for JSON serialization
         for item in progress_items:
             item["_id"] = str(item["_id"])
-        
+
         return progress_items
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -773,9 +816,12 @@ async def import_progress(user_id: str = Form(...), file: UploadFile = File(...)
 # ============================================
 
 @app.post("/feedback/generate-suggestions")
-async def generate_suggestions_endpoint(feedback: FeedbackRequest):
+async def generate_suggestions_endpoint(feedback: FeedbackRequest, user_id: str = Depends(verify_request_user_id)):
     """Generate enhanced AI suggestions for feedback"""
     try:
+        if str(feedback.user_id) != str(user_id):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         print(f"\n{'='*60}")
         print(f"🤖 AI SUGGESTIONS REQUEST")
         print(f"{'='*60}")
