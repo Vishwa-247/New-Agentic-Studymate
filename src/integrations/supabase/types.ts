@@ -1651,6 +1651,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_onboarding: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          experience_level: string
+          hours_per_week: number
+          learning_mode: string
+          primary_focus: string
+          target_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          experience_level: string
+          hours_per_week?: number
+          learning_mode: string
+          primary_focus: string
+          target_role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          experience_level?: string
+          hours_per_week?: number
+          learning_mode?: string
+          primary_focus?: string
+          target_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           ai_suggestions: Json | null
