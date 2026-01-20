@@ -215,7 +215,7 @@ export default function Onboarding() {
       };
       
       const { error } = await supabase
-        .from("user_onboarding")
+        .from('user_onboarding' as any)
         .upsert({
           user_id: user.id,
           ...finalData,

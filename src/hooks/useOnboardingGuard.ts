@@ -36,15 +36,19 @@ export function useOnboardingGuard(userId: string | undefined): OnboardingStatus
     }
 
     async function checkOnboarding() {
-      try {
-        const { data, error } = await supabase
-          .from('user_onboarding')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
+      type OnboardingRow = { completed_at: string | null };
 
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 = no rows returned (user hasn't completed onboarding)
+      try {
+        const res = await supabase
+          .from('user_onboarding' as any)
+          .select('completed_at')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        const data = (res as any).data as OnboardingRow | null;
+        const error = (res as any).error as any;
+
+        if (error) {
           console.error('Onboarding check error:', error);
         }
 
