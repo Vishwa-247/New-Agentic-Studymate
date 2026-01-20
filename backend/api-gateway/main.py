@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -23,13 +24,29 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="StudyMate API Gateway - Supabase Edition", version="2.0.0")
 
-# CORS middleware
+# -----------------
+# CORS configuration
+# -----------------
+# Avoid allow_origins=['*'] when credentials are enabled.
+# - ALLOWED_ORIGINS: comma-separated explicit origins
+# - ALLOWED_ORIGIN_REGEX: regex for dynamic preview domains (default: lovable preview subdomains)
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:3000",
+    ).split(",")
+    if o.strip()
+]
+ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", r"^https://.*\\.lovable\\.app$")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dev: allow all origins (use specific origins for prod)
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX if ALLOWED_ORIGIN_REGEX else None,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Security
@@ -168,30 +185,45 @@ async def health_check():
     }
 
 # Authentication endpoints
+
+def _is_origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in ALLOWED_ORIGINS:
+        return True
+    if ALLOWED_ORIGIN_REGEX:
+        try:
+            return re.match(ALLOWED_ORIGIN_REGEX, origin) is not None
+        except re.error:
+            return False
+    return False
+
+
+def _preflight_headers(request: Request, methods: str) -> dict:
+    origin = request.headers.get("origin", "")
+    headers = {
+        "Access-Control-Allow-Methods": methods,
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    }
+    if _is_origin_allowed(origin):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Vary"] = "Origin"
+    return headers
+
+
 @app.options("/auth/signin")
-async def options_signin():
+async def options_signin(request: Request):
     """Handle CORS preflight requests"""
-    return Response(
-        content="OK",
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
-    )
+    return Response(content="OK", status_code=200, headers=_preflight_headers(request, "POST, OPTIONS"))
+
 
 # Optional: global OPTIONS fallback
 @app.options("/{full_path:path}")
-async def options_any(full_path: str):
+async def options_any(full_path: str, request: Request):
     return Response(
         content="OK",
         status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+        headers=_preflight_headers(request, "GET, POST, PUT, DELETE, OPTIONS"),
     )
 
 @app.post("/auth/signin")
