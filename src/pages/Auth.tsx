@@ -1,16 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Mail, Loader2, CheckCircle, User as UserIcon, Building2, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PasswordInput } from '@/components/ui/PasswordInput';
-import { useAuth } from '@/hooks/useAuth';
+import {
+  ArrowLeft,
+  CheckCircle,
+  Chrome,
+  Loader2,
+  Mail,
+  User as UserIcon,
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -38,28 +50,42 @@ const benefitsList = [
 ];
 
 export default function Auth() {
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = useState("login");
   const [isLoading, setIsLoading] = useState(false);
+  const [benefitsOpen, setBenefitsOpen] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
 
   const signupForm = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
   });
+
+  const benefits = useMemo(
+    () => ({
+      primary: benefitsList.slice(0, 2),
+      extra: benefitsList.slice(2),
+    }),
+    []
+  );
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
@@ -80,11 +106,46 @@ export default function Auth() {
     try {
       setIsLoading(true);
       await signIn(data.email, data.password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
       // Error is already handled in the hook
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const parsed = z.string().email().safeParse(forgotEmail);
+    if (!parsed.success) {
+      toast({
+        title: "Enter a valid email",
+        description: "Please enter the email you used to sign up.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setForgotSending(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password reset sent",
+        description: "Check your inbox for a reset link.",
+      });
+      setForgotOpen(false);
+    } catch (e: any) {
+      toast({
+        title: "Could not send reset email",
+        description: e?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setForgotSending(false);
     }
   };
 
@@ -103,7 +164,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border/10 bg-background/80 backdrop-blur">
+      <header className="relative sm:sticky top-0 z-10 border-b border-border/10 bg-background/80 backdrop-blur">
         <div className="container max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <img
@@ -128,8 +189,8 @@ export default function Auth() {
       </header>
 
       {/* Main Content - Two Column Layout */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+      <main className="flex-1 overflow-y-auto flex items-start lg:items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-start lg:items-center">
           {/* Left Column - Benefits */}
           <div className="space-y-8 order-2 lg:order-1">
             <div className="space-y-4">
@@ -142,20 +203,53 @@ export default function Auth() {
               </p>
             </div>
 
-            <ul className="space-y-4">
-              {benefitsList.map((benefit, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-foreground/80">{benefit}</span>
-                </li>
-              ))}
-            </ul>
+            {/* Benefits list: collapsed on mobile, full on desktop */}
+            <div className="space-y-4">
+              <ul className="space-y-4 lg:hidden">
+                {benefits.primary.map((benefit, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-foreground/80">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Collapsible open={benefitsOpen} onOpenChange={setBenefitsOpen} className="lg:hidden">
+                <CollapsibleContent className="space-y-4">
+                  <ul className="space-y-4 pt-4">
+                    {benefits.extra.map((benefit, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <CheckCircle className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="text-foreground/80">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CollapsibleContent>
+
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground hover:text-foreground">
+                    {benefitsOpen ? "Show less" : "Show more"}
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
+
+              <ul className="space-y-4 hidden lg:block">
+                {benefitsList.map((benefit, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-foreground/80">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-
-
-          {/* Right Column - Auth Card */}
           <div className="w-full max-w-md mx-auto lg:mx-0 order-1 lg:order-2">
             <Card className="border-border shadow-xl bg-card">
               <CardContent className="pt-6 px-6 pb-6">
@@ -210,12 +304,16 @@ export default function Auth() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="login-password">Password</Label>
-                          <a
-                            href="#"
+                          <button
+                            type="button"
                             className="text-xs text-primary hover:underline"
+                            onClick={() => {
+                              setForgotEmail(loginForm.getValues("email") || "");
+                              setForgotOpen(true);
+                            }}
                           >
                             Forgot?
-                          </a>
+                          </button>
                         </div>
                         <PasswordInput
                           id="login-password"
@@ -346,9 +444,7 @@ export default function Auth() {
                       <span className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
+                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                     </div>
                   </div>
 
@@ -359,10 +455,48 @@ export default function Auth() {
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
                   >
-                    <Mail className="mr-2 h-4 w-4" />
-                    Google
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Continue with Google
                   </Button>
                 </div>
+
+                <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset your password</DialogTitle>
+                      <DialogDescription>
+                        Enter your email and we’ll send you a password reset link.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email">Email</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        disabled={forgotSending}
+                      />
+                    </div>
+
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setForgotOpen(false)}
+                        disabled={forgotSending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" onClick={handleForgotPassword} disabled={forgotSending}>
+                        {forgotSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send reset link
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
