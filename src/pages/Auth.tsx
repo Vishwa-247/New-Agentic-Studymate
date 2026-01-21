@@ -162,7 +162,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background overflow-y-scroll">
       {/* Header */}
       <header className="relative sm:sticky top-0 z-10 border-b border-border/10 bg-background/80 backdrop-blur">
         <div className="container max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
@@ -189,7 +189,7 @@ export default function Auth() {
       </header>
 
       {/* Main Content - Two Column Layout */}
-      <main className="flex-1 overflow-y-auto flex items-start lg:items-center justify-center p-4 sm:p-6">
+      <main className="flex-1 flex items-start lg:items-center justify-center p-4 sm:p-6 min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-start lg:items-center">
           {/* Left Column - Benefits */}
           <div className="space-y-8 order-2 lg:order-1">
@@ -275,7 +275,7 @@ export default function Auth() {
 
                   <TabsContent
                     value="login"
-                    className="space-y-4 focus-visible:outline-none"
+                    className="space-y-4 focus-visible:outline-none min-h-[320px] sm:min-h-[360px]"
                   >
                     <form
                       onSubmit={loginForm.handleSubmit(onLoginSubmit)}
@@ -345,7 +345,7 @@ export default function Auth() {
 
                   <TabsContent
                     value="signup"
-                    className="space-y-4 focus-visible:outline-none"
+                    className="space-y-4 focus-visible:outline-none min-h-[320px] sm:min-h-[360px]"
                   >
                     <form
                       onSubmit={signupForm.handleSubmit(onSignupSubmit)}

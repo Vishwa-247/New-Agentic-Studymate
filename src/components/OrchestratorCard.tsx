@@ -4,7 +4,7 @@
  * Fetches the next module on mount and shows a CTA to navigate.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ArrowRight, 
   Bot, 
@@ -95,30 +96,31 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
 
   const [decisionLog, setDecisionLog] = useState<any[]>([]);
   const [logLoading, setLogLoading] = useState(false);
+  const [logLoadedOnce, setLogLoadedOnce] = useState(false);
+
+  const fetchRecommendation = useCallback(async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("orchestrator-next", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      setRecommendation(data);
+    } catch (err: any) {
+      console.error("Failed to fetch orchestrator recommendation:", err);
+      setError("Couldn't fetch your next step. Try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    async function fetchRecommendation() {
-      if (!userId) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke("orchestrator-next", {
-          body: { user_id: userId },
-        });
-        if (error) throw error;
-        setRecommendation(data);
-      } catch (err: any) {
-        console.error("Failed to fetch orchestrator recommendation:", err);
-        setError("Couldn't fetch your next step. Try again later.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchRecommendation();
-  }, [userId]);
+  }, [fetchRecommendation]);
 
   const moduleConfig = recommendation 
     ? (MODULE_CONFIG[recommendation.next_module] || MODULE_CONFIG.default)
@@ -131,7 +133,7 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
     return d > 1 ? `Depth ${d}` : "Baseline";
   }, [recommendation?.depth]);
 
-  const loadDecisionLog = async () => {
+  const loadDecisionLog = useCallback(async () => {
     if (!userId) return;
     setLogLoading(true);
     try {
@@ -143,25 +145,31 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
         .limit(8);
       if (error) throw error;
       setDecisionLog(data || []);
+      setLogLoadedOnce(true);
     } catch (e) {
       console.error("Failed to load decision log:", e);
       setDecisionLog([]);
     } finally {
       setLogLoading(false);
     }
-  };
+  }, [userId]);
 
   if (loading) {
     return (
-      <Card className="border-2 border-dashed border-primary/30 bg-primary/5">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-            <Loader2 className="h-10 w-10 text-primary animate-spin relative z-10" />
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">Next recommended step</CardTitle>
+              <CardDescription className="text-sm">
+                Personalized by your Orchestrator
+              </CardDescription>
+            </div>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground font-medium">
-            AI Orchestrator analyzing your progress...
-          </p>
+        </CardHeader>
+        <CardContent className="flex items-center gap-3 py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Analyzing your progress…</p>
         </CardContent>
       </Card>
     );
@@ -169,16 +177,17 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
 
   if (error) {
     return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardContent className="flex flex-col items-center justify-center py-8">
-          <AlertCircle className="h-8 w-8 text-destructive mb-3" />
-          <p className="text-sm text-destructive">{error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Next recommended step</CardTitle>
+          <CardDescription className="text-sm">Personalized by your Orchestrator</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start gap-2 text-sm">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchRecommendation}>
             Retry
           </Button>
         </CardContent>
@@ -187,31 +196,34 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20 shadow-lg relative">
-      
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Bot className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">AI Recommended Next Step</CardTitle>
-              <Sparkles className="h-4 w-4 text-primary" />
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-md bg-primary/10 p-2">
+              <Bot className="h-4 w-4 text-primary" />
             </div>
-            <CardDescription className="text-xs">
-              Personalized by your Orchestrator
-            </CardDescription>
+            <div>
+              <CardTitle className="text-lg">Next recommended step</CardTitle>
+              <CardDescription className="text-sm">
+                Updates after your Interview Journey results.
+              </CardDescription>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Orchestrator v0</span>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {recommendation && (
           <>
             {/* Module Badge */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50 border border-border/50">
-              <div className="p-3 rounded-lg bg-background shadow-sm text-primary">
+            <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-4">
+              <div className="rounded-md bg-background p-3 shadow-sm text-primary">
                 <ModuleIcon className="h-6 w-6" />
               </div>
               <div className="flex-1">
@@ -228,7 +240,7 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
             </div>
 
             {/* Reason */}
-            <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border-l-4 border-primary/50">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Why this?</span>{" "}
               {recommendation.reason}
             </div>
@@ -243,11 +255,23 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button type="button" variant="outline" className="w-full" onClick={loadDecisionLog}>
+                <Button type="button" variant="outline" className="w-full">
                   View decision log
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-xl">
+              <DialogContent
+                className="max-w-xl"
+                onOpenAutoFocus={() => {
+                  // Keep default focus behavior but ensure data is ready.
+                  if (!logLoadedOnce) loadDecisionLog();
+                }}
+                onInteractOutside={() => {
+                  // no-op; keep default behavior
+                }}
+                onEscapeKeyDown={() => {
+                  // no-op; keep default behavior
+                }}
+              >
                 <DialogHeader>
                   <DialogTitle>Orchestrator decision log</DialogTitle>
                   <DialogDescription>
@@ -261,24 +285,28 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
                     Loading...
                   </div>
                 ) : decisionLog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No decisions yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No decisions yet. Complete an Interview Journey once to generate signals.
+                  </p>
                 ) : (
-                  <div className="space-y-3">
-                    {decisionLog.map((d) => (
-                      <div key={d.id} className="rounded-lg border border-border/60 p-3 bg-muted/20">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-foreground">
-                            {MODULE_CONFIG[d.next_module]?.label || d.next_module}
+                  <ScrollArea className="max-h-[360px] pr-2">
+                    <div className="space-y-3">
+                      {decisionLog.map((d) => (
+                        <div key={d.id} className="rounded-lg border border-border/60 p-3 bg-muted/20">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium text-foreground">
+                              {MODULE_CONFIG[d.next_module]?.label || d.next_module}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Depth {d.depth}</p>
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">{d.reason}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {new Date(d.created_at).toLocaleString()}
                           </p>
-                          <p className="text-xs text-muted-foreground">Depth {d.depth}</p>
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">{d.reason}</p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {new Date(d.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
               </DialogContent>
             </Dialog>
