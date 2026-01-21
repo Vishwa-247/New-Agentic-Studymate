@@ -32,6 +32,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
+from journey import JourneyStartRequest, JourneyStepRequest, create_session, step_session
+
 # Load environment variables from backend root
 backend_root = Path(__file__).parent.parent.parent
 env_path = backend_root / ".env"
@@ -254,6 +256,37 @@ async def health_check():
         "active_interviews": len(interview_sessions),
         "question_bank_size": sum(len(questions) for category in question_bank.values() for questions in category.values())
     }
+
+
+# ============================================
+# Interview Journey (Milestone 2)
+# ============================================
+
+
+@app.post("/api/interview/start")
+async def start_interview_journey(payload: JourneyStartRequest, user_id: str = Depends(verify_request_user_id)):
+    """Start a deterministic production-thinking interview journey."""
+    try:
+        session_id, state, prompt = create_session(supabase=supabase, user_id=user_id, payload=payload)
+        return {"session_id": session_id, "state": state, "prompt": prompt}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"journey start error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/interview/step")
+async def step_interview_journey(payload: JourneyStepRequest, user_id: str = Depends(verify_request_user_id)):
+    """Advance the journey state machine by one user message."""
+    try:
+        res = step_session(supabase=supabase, user_id=user_id, payload=payload)
+        return res.model_dump()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"journey step error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/start")
 async def start_interview(request: InterviewStartRequest):

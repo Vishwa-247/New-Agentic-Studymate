@@ -1168,6 +1168,62 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_metrics: {
+        Row: {
+          adaptability: number
+          clarification_habit: number
+          created_at: string
+          failure_awareness: number
+          id: string
+          journey_version: number
+          notes: Json
+          overall_score: number
+          scalability_thinking: number
+          session_id: string
+          structure: number
+          tradeoff_awareness: number
+          user_id: string
+        }
+        Insert: {
+          adaptability?: number
+          clarification_habit?: number
+          created_at?: string
+          failure_awareness?: number
+          id?: string
+          journey_version?: number
+          notes?: Json
+          overall_score?: number
+          scalability_thinking?: number
+          session_id: string
+          structure?: number
+          tradeoff_awareness?: number
+          user_id: string
+        }
+        Update: {
+          adaptability?: number
+          clarification_habit?: number
+          created_at?: string
+          failure_awareness?: number
+          id?: string
+          journey_version?: number
+          notes?: Json
+          overall_score?: number
+          scalability_thinking?: number
+          session_id?: string
+          structure?: number
+          tradeoff_awareness?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_metrics_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_responses: {
         Row: {
           ai_analysis: Json | null
@@ -1233,6 +1289,12 @@ export type Database = {
           feedback: Json | null
           id: string
           job_role: string | null
+          journey_completed_at: string | null
+          journey_context: Json
+          journey_last_step_at: string | null
+          journey_mode: string
+          journey_state: string
+          journey_version: number
           max_possible_score: number | null
           questions_data: Json
           resume_id: string | null
@@ -1252,6 +1314,12 @@ export type Database = {
           feedback?: Json | null
           id?: string
           job_role?: string | null
+          journey_completed_at?: string | null
+          journey_context?: Json
+          journey_last_step_at?: string | null
+          journey_mode?: string
+          journey_state?: string
+          journey_version?: number
           max_possible_score?: number | null
           questions_data?: Json
           resume_id?: string | null
@@ -1271,6 +1339,12 @@ export type Database = {
           feedback?: Json | null
           id?: string
           job_role?: string | null
+          journey_completed_at?: string | null
+          journey_context?: Json
+          journey_last_step_at?: string | null
+          journey_mode?: string
+          journey_state?: string
+          journey_version?: number
           max_possible_score?: number | null
           questions_data?: Json
           resume_id?: string | null
@@ -1288,6 +1362,47 @@ export type Database = {
             columns: ["resume_id"]
             isOneToOne: false
             referencedRelation: "user_resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_turns: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json
+          role: string
+          session_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          role: string
+          session_id: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          role?: string
+          session_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_turns_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
             referencedColumns: ["id"]
           },
         ]

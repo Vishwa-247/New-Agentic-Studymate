@@ -124,6 +124,82 @@ Analyze interview.
 
 > **Planned (Milestone 2)**: Add a deterministic state-machine interview journey under `/api/interview/*` without breaking existing `/interviews/*` endpoints.
 
+#### `POST /api/interview/start`
+Starts a deterministic production-thinking interview journey.
+
+**Auth:** Gateway JWT required.
+
+**Request**
+```json
+{
+  "job_role": "Software Engineer",
+  "tech_stack": "React, Supabase",
+  "experience_level": "intermediate",
+  "mode": "production_thinking"
+}
+```
+
+**Response (200)**
+```json
+{
+  "session_id": "<uuid>",
+  "state": "AWAITING_CLARIFICATION",
+  "prompt": "..."
+}
+```
+
+#### `POST /api/interview/step`
+Advances the journey state machine by one user message.
+
+**Auth:** Gateway JWT required.
+
+**Request**
+```json
+{
+  "session_id": "<uuid>",
+  "message": "My first questions are: what's the traffic profile and SLA?"
+}
+```
+
+**Response (200)**
+```json
+{
+  "session_id": "<uuid>",
+  "state": "CORE_ANSWER",
+  "prompt": "...",
+  "done": false,
+  "metrics": null
+}
+```
+
+**Terminal response (COMPLETE)**
+```json
+{
+  "session_id": "<uuid>",
+  "state": "COMPLETE",
+  "prompt": "Complete. Good work.",
+  "done": true,
+  "metrics": {
+    "clarification_habit": 1.0,
+    "structure": 0.67,
+    "tradeoff_awareness": 0.33,
+    "scalability_thinking": 0.5,
+    "failure_awareness": 0.5,
+    "adaptability": 0.33,
+    "overall_score": 0.56
+  }
+}
+```
+
+**State enum**
+- `INITIAL`
+- `AWAITING_CLARIFICATION`
+- `CORE_ANSWER`
+- `FOLLOW_UP`
+- `CURVEBALL`
+- `REFLECTION`
+- `COMPLETE`
+
 ---
 
 ### Courses

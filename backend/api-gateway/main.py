@@ -395,6 +395,30 @@ async def generate_hr(interview_data: dict, user_id: str = Depends(verify_token)
     interview_data["user_id"] = user_id
     return await forward_to_agent("interview-coach", "/generate-hr", "POST", interview_data)
 
+
+# ============================================
+# Interview Journey Routes (Milestone 2)
+# Gateway-only exposed under /api/interview/*
+# ============================================
+
+
+@app.post("/api/interview/start")
+async def api_interview_start(payload: dict, request: Request, user_id: str = Depends(verify_token)):
+    """Start deterministic interview journey. Injects verified user_id."""
+    payload["user_id"] = user_id
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("interview-coach", "/api/interview/start", "POST", payload, headers=headers)
+
+
+@app.post("/api/interview/step")
+async def api_interview_step(payload: dict, request: Request, user_id: str = Depends(verify_token)):
+    """Advance deterministic interview journey. Injects verified user_id."""
+    payload["user_id"] = user_id
+    auth = request.headers.get("Authorization")
+    headers = {"Authorization": auth} if auth else {}
+    return await forward_to_agent("interview-coach", "/api/interview/step", "POST", payload, headers=headers)
+
 # Chat Routes
 @app.post("/chat/message")
 async def send_message(message_data: dict, user_id: str = Depends(verify_token)):
