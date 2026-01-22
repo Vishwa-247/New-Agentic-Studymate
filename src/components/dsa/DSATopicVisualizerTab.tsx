@@ -1,4 +1,5 @@
 import SortingVisualizer from "@/components/dsa/visualizer/SortingVisualizer";
+import StringBasicsVisualizer from "@/components/dsa/visualizer/string/StringBasicsVisualizer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DSATopicVisualizerTabProps = {
@@ -12,8 +13,15 @@ const sortingTopicIds = new Set<string>([
   "searching-and-sorting",
 ]);
 
+const stringTopicIds = new Set<string>(["string-basics"]);
+
 export default function DSATopicVisualizerTab({ topicId }: DSATopicVisualizerTabProps) {
   const isSortingTopic = sortingTopicIds.has(topicId);
+  const isStringTopic = stringTopicIds.has(topicId);
+
+  if (isStringTopic) {
+    return <StringBasicsVisualizer topicId={topicId} />;
+  }
 
   if (!isSortingTopic) {
     return (
