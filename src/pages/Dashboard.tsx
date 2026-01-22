@@ -1,5 +1,7 @@
 import Chatbot from "@/components/Chatbot";
 import OrchestratorCard from "@/components/OrchestratorCard";
+import ServiceHealthMonitor from "@/components/debug/ServiceHealthMonitor";
+import JobSearchTestCard from "@/components/job/JobSearchTestCard";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,8 +23,10 @@ import {
   ArrowRight,
   BookOpen,
   Code,
+  Loader2,
   Medal,
   MessageSquare,
+  Sparkles,
   Target,
   User,
   Video,
@@ -44,12 +48,55 @@ const Dashboard = () => {
     inProgress: 0,
   });
 
+  type LatestMetrics = {
+    created_at: string;
+    overall_score: number;
+    clarification_habit: number;
+    structure: number;
+    tradeoff_awareness: number;
+    scalability_thinking: number;
+    failure_awareness: number;
+    adaptability: number;
+  };
+
+  const [latestMetrics, setLatestMetrics] = useState<LatestMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+
+  const loadLatestMetrics = useCallback(async (uid: string) => {
+    setMetricsLoading(true);
+    setMetricsError(null);
+    try {
+      const { data, error } = await supabase
+        .from("interview_metrics")
+        .select(
+          "created_at, overall_score, clarification_habit, structure, tradeoff_awareness, scalability_thinking, failure_awareness, adaptability"
+        )
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      setLatestMetrics((data?.[0] as any) ?? null);
+    } catch (e) {
+      console.error("Failed to load interview metrics:", e);
+      setLatestMetrics(null);
+      setMetricsError("No interview metrics yet.");
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, []);
+
   // Load user data on mount
   useEffect(() => {
     if (user) {
       loadUserData();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user?.id) loadLatestMetrics(user.id);
+  }, [user?.id, loadLatestMetrics]);
 
   // Real-time listeners for courses, interviews, and profile updates
   useEffect(() => {
@@ -366,6 +413,115 @@ const Dashboard = () => {
                 <OrchestratorCard userId={user.id} />
               </div>
             )}
+
+            {/* Showcase: system readiness + proof panels */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <ServiceHealthMonitor />
+              </div>
+
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      Deterministic Agent Loop
+                    </CardTitle>
+                    <CardDescription>
+                      State → planner → action → audit (explainable next-step routing).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>
+                        <span className="text-foreground font-medium">State</span>: onboarding/profile + interview metrics
+                      </li>
+                      <li>
+                        <span className="text-foreground font-medium">Planner</span>: orchestrator-next (rules-based)
+                      </li>
+                      <li>
+                        <span className="text-foreground font-medium">Action</span>: routes to the recommended module
+                      </li>
+                      <li>
+                        <span className="text-foreground font-medium">Audit</span>: orchestrator_decisions log
+                      </li>
+                    </ul>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button asChild variant="outline">
+                        <Link to="/dashboard">Open Orchestrator</Link>
+                      </Button>
+                      <Button asChild>
+                        <Link to="/resume-analyzer">
+                          Resume Analyzer <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      Interview Metrics Snapshot
+                    </CardTitle>
+                    <CardDescription>Latest signals from your interview practice.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {metricsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading metrics…
+                      </div>
+                    ) : latestMetrics ? (
+                      <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground">
+                          Updated: {new Date(latestMetrics.created_at).toLocaleString()}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[
+                            ["Overall", latestMetrics.overall_score],
+                            ["Structure", latestMetrics.structure],
+                            ["Clarification", latestMetrics.clarification_habit],
+                            ["Tradeoffs", latestMetrics.tradeoff_awareness],
+                          ].map(([label, v]) => (
+                            <div key={String(label)} className="rounded-lg border bg-muted/10 p-3">
+                              <div className="text-xs text-muted-foreground">{label}</div>
+                              <div className="text-lg font-semibold text-foreground">
+                                {Math.round(Number(v))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button asChild variant="outline">
+                            <Link to="/mock-interview">Run Mock Interview</Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => user?.id && loadLatestMetrics(user.id)}
+                          >
+                            Refresh
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          {metricsError || "No interview metrics yet."}
+                        </div>
+                        <Button asChild>
+                          <Link to="/mock-interview">
+                            Start Mock Interview <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <JobSearchTestCard />
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <Card>

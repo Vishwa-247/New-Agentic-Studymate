@@ -68,7 +68,7 @@ const MODULE_CONFIG: Record<string, {
     label: "Resume Builder",
   },
   project_studio: { 
-    route: "/course-generator", 
+    route: "/project-studio", 
     icon: Briefcase,
     label: "Project Studio",
   },
@@ -93,6 +93,7 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
   const [decisionLog, setDecisionLog] = useState<any[]>([]);
   const [logLoading, setLogLoading] = useState(false);
   const [logLoadedOnce, setLogLoadedOnce] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
 
   const fetchRecommendation = useCallback(async () => {
     if (!userId) return;
@@ -202,7 +203,7 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
             <div>
               <CardTitle className="text-lg">Next recommended step</CardTitle>
               <CardDescription className="text-sm">
-                Updates after your Interview Journey results.
+                Updates after your activity (interviews, courses, and practice).
               </CardDescription>
             </div>
           </div>
@@ -249,7 +250,13 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
               </Link>
             </Button>
 
-            <Dialog>
+            <Dialog
+              open={logOpen}
+              onOpenChange={(open) => {
+                setLogOpen(open);
+                if (open && !logLoadedOnce) loadDecisionLog();
+              }}
+            >
               <DialogTrigger asChild>
                 <Button type="button" variant="outline" className="w-full">
                   View decision log
@@ -257,10 +264,6 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
               </DialogTrigger>
               <DialogContent
                 className="max-w-xl"
-                onOpenAutoFocus={() => {
-                  // Keep default focus behavior but ensure data is ready.
-                  if (!logLoadedOnce) loadDecisionLog();
-                }}
                 onInteractOutside={() => {
                   // no-op; keep default behavior
                 }}
@@ -282,7 +285,7 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
                   </div>
                 ) : decisionLog.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No decisions yet. Complete an Interview Journey once to generate signals.
+                    No decisions yet. Complete an interview or create a course to generate signals.
                   </p>
                 ) : (
                   <ScrollArea className="max-h-[360px] pr-2">

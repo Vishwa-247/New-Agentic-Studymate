@@ -113,9 +113,23 @@ export default function ResumeAnalyzer() {
         formData.append('user_id', user.id);
       }
 
-      const response = await fetch('http://localhost:8003/analyze-resume', {
+       const token = (() => {
+         try {
+           return localStorage.getItem('gateway_access_token');
+         } catch {
+           return null;
+         }
+       })();
+
+      const signal = (AbortSignal as any)?.timeout ? (AbortSignal as any).timeout(120000) : undefined;
+
+      const response = await fetch('http://localhost:8000/resume/analyze', {
         method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: formData,
+        ...(signal ? { signal } : {}),
       });
 
       if (!response.ok) {

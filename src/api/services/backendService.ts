@@ -13,6 +13,8 @@ class BackendServiceManager {
     'profile-service': { port: 8006, path: '/health' },
     'dsa-service': { port: 8002, path: '/health' },
     'course-service': { port: 8001, path: '/health' },
+    'resume-analyzer': { port: 8003, path: '/health' },
+    'job-search': { port: 8013, path: '/health' },
   };
 
   async checkServiceHealth(serviceName: string): Promise<ServiceHealthStatus> {

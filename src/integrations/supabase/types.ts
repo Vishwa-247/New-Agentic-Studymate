@@ -1796,6 +1796,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_memory: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          event_type: string
+          id: string
+          metric_name: string | null
+          metric_value: number | null
+          module: string
+          observation: string
+          session_id: string | null
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          metric_name?: string | null
+          metric_value?: number | null
+          module: string
+          observation: string
+          session_id?: string | null
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          metric_name?: string | null
+          metric_value?: number | null
+          module?: string
+          observation?: string
+          session_id?: string | null
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           completed_at: string | null
@@ -1828,6 +1870,51 @@ export type Database = {
           primary_focus?: string
           target_role?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_patterns: {
+        Row: {
+          avg_score: number | null
+          confidence: number | null
+          description: string
+          first_seen_at: string | null
+          id: string
+          last_seen_at: string | null
+          metric_name: string | null
+          module: string | null
+          occurrence_count: number | null
+          pattern_type: string
+          trend: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_score?: number | null
+          confidence?: number | null
+          description: string
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          metric_name?: string | null
+          module?: string | null
+          occurrence_count?: number | null
+          pattern_type: string
+          trend?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_score?: number | null
+          confidence?: number | null
+          description?: string
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          metric_name?: string | null
+          module?: string | null
+          occurrence_count?: number | null
+          pattern_type?: string
+          trend?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2119,13 +2206,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_memory_summary: {
+        Row: {
+          avg_value: number | null
+          event_count: number | null
+          last_event_at: string | null
+          max_value: number | null
+          metric_name: string | null
+          min_value: number | null
+          module: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_profile_completion: {
         Args: { user_profile_id: string }
         Returns: number
       }
+      get_user_weakness_summary: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      record_memory_event: {
+        Args: {
+          p_event_type: string
+          p_metric_name?: string
+          p_metric_value?: number
+          p_module: string
+          p_observation: string
+          p_tags?: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      update_user_patterns: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

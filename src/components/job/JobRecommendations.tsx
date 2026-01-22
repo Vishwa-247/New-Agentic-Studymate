@@ -23,13 +23,25 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({ jobRole,
     const [jobs, setJobs] = useState<JobMatch[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [notConfigured, setNotConfigured] = useState(false);
+
+    const getGatewayToken = () => {
+        try {
+            return localStorage.getItem('gateway_access_token');
+        } catch {
+            return null;
+        }
+    };
 
     const handleSearch = async () => {
         setLoading(true);
         setSearched(false);
+        setErrorMessage(null);
+        setNotConfigured(false);
         try {
             // Get token if authenticated (optional, depends on gateway setup)
-            const token = localStorage.getItem('token');
+            const token = getGatewayToken();
             const headers = {
                 'Content-Type': 'application/json',
                 ...(token && { 'Authorization': `Bearer ${token}` })
@@ -45,13 +57,28 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({ jobRole,
                 })
             });
 
-            if (!response.ok) throw new Error('Search failed');
-            
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const detail = String((data as any)?.detail || (data as any)?.message || 'Search failed');
+                const lower = detail.toLowerCase();
+                if (lower.includes('api key') && lower.includes('not') && lower.includes('configured')) {
+                    setNotConfigured(true);
+                    setErrorMessage(detail);
+                    setJobs([]);
+                    setSearched(true);
+                    return;
+                }
+                throw new Error(detail);
+            }
+
             setJobs(data.matches || []);
             setSearched(true);
         } catch (error) {
             console.error("Job search error:", error);
+            setJobs([]);
+            setSearched(true);
+            setErrorMessage(error instanceof Error ? error.message : 'Job search failed');
         } finally {
             setLoading(false);
         }
@@ -83,7 +110,24 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({ jobRole,
                 </div>
             )}
 
-            {!loading && searched && jobs.length === 0 && (
+            {!loading && searched && notConfigured && (
+                <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
+                    <p className="text-muted-foreground">
+                        Job Search is not configured (missing API keys). You can still use the Resume Analyzer.
+                    </p>
+                    {errorMessage ? (
+                        <p className="text-xs text-muted-foreground mt-2">{errorMessage}</p>
+                    ) : null}
+                </div>
+            )}
+
+            {!loading && searched && !notConfigured && errorMessage && (
+                <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
+                    <p className="text-muted-foreground">{errorMessage}</p>
+                </div>
+            )}
+
+            {!loading && searched && !notConfigured && !errorMessage && jobs.length === 0 && (
                 <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
                     <p className="text-muted-foreground">No matching jobs found via Firecrawl.</p>
                 </div>
