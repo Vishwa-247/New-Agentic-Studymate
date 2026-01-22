@@ -414,113 +414,26 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Showcase: system readiness + proof panels */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <ServiceHealthMonitor />
-              </div>
-
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      Deterministic Agent Loop
-                    </CardTitle>
-                    <CardDescription>
-                      State → planner → action → audit (explainable next-step routing).
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-muted-foreground">
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>
-                        <span className="text-foreground font-medium">State</span>: onboarding/profile + interview metrics
-                      </li>
-                      <li>
-                        <span className="text-foreground font-medium">Planner</span>: orchestrator-next (rules-based)
-                      </li>
-                      <li>
-                        <span className="text-foreground font-medium">Action</span>: routes to the recommended module
-                      </li>
-                      <li>
-                        <span className="text-foreground font-medium">Audit</span>: orchestrator_decisions log
-                      </li>
-                    </ul>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <Button asChild variant="outline">
-                        <Link to="/dashboard">Open Orchestrator</Link>
-                      </Button>
-                      <Button asChild>
-                        <Link to="/resume-analyzer">
-                          Resume Analyzer <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-primary" />
-                      Interview Metrics Snapshot
-                    </CardTitle>
-                    <CardDescription>Latest signals from your interview practice.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {metricsLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading metrics…
-                      </div>
-                    ) : latestMetrics ? (
-                      <div className="space-y-3">
-                        <div className="text-xs text-muted-foreground">
-                          Updated: {new Date(latestMetrics.created_at).toLocaleString()}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {[
-                            ["Overall", latestMetrics.overall_score],
-                            ["Structure", latestMetrics.structure],
-                            ["Clarification", latestMetrics.clarification_habit],
-                            ["Tradeoffs", latestMetrics.tradeoff_awareness],
-                          ].map(([label, v]) => (
-                            <div key={String(label)} className="rounded-lg border bg-muted/10 p-3">
-                              <div className="text-xs text-muted-foreground">{label}</div>
-                              <div className="text-lg font-semibold text-foreground">
-                                {Math.round(Number(v))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button asChild variant="outline">
-                            <Link to="/mock-interview">Run Mock Interview</Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => user?.id && loadLatestMetrics(user.id)}
-                          >
-                            Refresh
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">
-                          {metricsError || "No interview metrics yet."}
-                        </div>
-                        <Button asChild>
-                          <Link to="/mock-interview">
-                            Start Mock Interview <ArrowRight className="ml-2 h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <JobSearchTestCard />
-              </div>
+            {/* Minimal Overview for standard users */}
+            <div className="grid grid-cols-1 gap-6">
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Focus for today
+                  </CardTitle>
+                  <CardDescription>
+                    Your AI mentor suggests focusing on your interview skills.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild>
+                    <Link to="/showcase">
+                      View System Mission Control <Activity className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">

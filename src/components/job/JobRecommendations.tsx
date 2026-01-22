@@ -62,7 +62,15 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({ jobRole,
             if (!response.ok) {
                 const detail = String((data as any)?.detail || (data as any)?.message || 'Search failed');
                 const lower = detail.toLowerCase();
-                if (lower.includes('api key') && lower.includes('not') && lower.includes('configured')) {
+                
+                // Detailed detection for missing keys (Firecrawl, Groq, etc)
+                const isConfigError = 
+                    lower.includes('api key') || 
+                    lower.includes('not configured') || 
+                    lower.includes('missing configuration') ||
+                    response.status === 500 && (lower.includes('firecrawl') || lower.includes('groq'));
+
+                if (isConfigError) {
                     setNotConfigured(true);
                     setErrorMessage(detail);
                     setJobs([]);

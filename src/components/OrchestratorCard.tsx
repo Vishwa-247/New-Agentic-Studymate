@@ -119,9 +119,16 @@ export default function OrchestratorCard({ userId }: OrchestratorCardProps) {
     fetchRecommendation();
   }, [fetchRecommendation]);
 
-  const moduleConfig = recommendation 
-    ? (MODULE_CONFIG[recommendation.next_module] || MODULE_CONFIG.default)
-    : MODULE_CONFIG.default;
+  const moduleConfig = useMemo(() => {
+    if (!recommendation) return MODULE_CONFIG.default;
+    
+    // SAFE ROUTING: Override project_studio to dashboard for demo stability
+    if (recommendation.next_module === "project_studio") {
+      return MODULE_CONFIG.default;
+    }
+    
+    return MODULE_CONFIG[recommendation.next_module] || MODULE_CONFIG.default;
+  }, [recommendation]);
 
   const ModuleIcon = moduleConfig.icon;
 

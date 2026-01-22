@@ -36,6 +36,7 @@ const Navbar = () => {
     { name: "DSA Sheet", href: "/dsa-sheet" },
     { name: "Mock Interview", href: "/mock-interview" },
     { name: "Resume Analyzer", href: "/resume-analyzer" },
+    { name: "Showcase", href: "/showcase" },
   ];
 
   const getInitials = (name: string) => {

@@ -18,8 +18,9 @@ const BackendHealthCheck: React.FC = () => {
     { name: 'API Gateway', url: 'http://localhost:8000/health', port: 8000, status: 'offline' },
     { name: 'Profile Service', url: 'http://localhost:8006/health', port: 8006, status: 'offline' },
     { name: 'Resume Analyzer', url: 'http://localhost:8003/health', port: 8003, status: 'offline' },
-    { name: 'Course Service', url: 'http://localhost:8007/health', port: 8007, status: 'offline' },
-    { name: 'Interview Coach', url: 'http://localhost:8002/health', port: 8002, status: 'offline' },
+    { name: 'Course Service', url: 'http://localhost:8001/health', port: 8001, status: 'offline' },
+    { name: 'DSA Service', url: 'http://localhost:8002/health', port: 8002, status: 'offline' },
+    { name: 'Job Search', url: 'http://localhost:8013/health', port: 8013, status: 'offline' },
   ]);
 
   const [isChecking, setIsChecking] = useState(false);

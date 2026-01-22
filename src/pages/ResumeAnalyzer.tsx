@@ -8,6 +8,7 @@ import { Upload, FileText, Loader2, Sparkles, History, Search, Check, AlertCircl
 import { AnalysisHistory } from "@/components/resume/AnalysisHistory";
 import { EnhancedAnalysisResults } from "@/components/resume/EnhancedAnalysisResults";
 import { supabase } from "@/integrations/supabase/client";
+import { resumeService } from "@/api/services/resumeService";
 import {
   Dialog,
   DialogContent,
@@ -100,44 +101,13 @@ export default function ResumeAnalyzer() {
         description: "Analyzing your resume against the job description...",
       });
       
-      const formData = new FormData();
-      if (selectedFile) {
-        formData.append('resume', selectedFile);
-      } else if (selectedResumeId) {
-        formData.append('resume_id', selectedResumeId);
-      }
-      
-      formData.append('job_role', jobRole || "Candidate");
-      formData.append('job_description', jobDescription);
-      if (user?.id) {
-        formData.append('user_id', user.id);
-      }
-
-       const token = (() => {
-         try {
-           return localStorage.getItem('gateway_access_token');
-         } catch {
-           return null;
-         }
-       })();
-
-      const signal = (AbortSignal as any)?.timeout ? (AbortSignal as any).timeout(120000) : undefined;
-
-      const response = await fetch('http://localhost:8000/resume/analyze', {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-        ...(signal ? { signal } : {}),
+      const data = await resumeService.analyzeResume(selectedFile, {
+        jobRole: jobRole || "Candidate",
+        jobDescription: jobDescription,
+        userId: user?.id,
+        resumeId: selectedResumeId || undefined
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Analysis failed');
-      }
-
-      const data = await response.json();
       setAnalysisResults(data.analysis);
       setAnalysisComplete(true);
       

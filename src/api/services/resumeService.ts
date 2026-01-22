@@ -2,6 +2,7 @@ export interface ResumeAnalysisRequest {
   jobRole: string;
   jobDescription?: string;
   userId?: string;
+  resumeId?: string;
 }
 
 export interface ResumeAnalysisResponse {
@@ -38,10 +39,17 @@ export interface ProfileExtractionResponse {
   file_path: string;
 }
 
+import { gatewayAuthService } from './gatewayAuthService';
+
 export const resumeService = {
-  async analyzeResume(file: File, data: ResumeAnalysisRequest): Promise<ResumeAnalysisResponse> {
+  async analyzeResume(file: File | null, data: ResumeAnalysisRequest): Promise<ResumeAnalysisResponse> {
     const formData = new FormData();
-    formData.append('resume', file);
+    if (file) {
+      formData.append('resume', file);
+    } else if (data.resumeId) {
+      formData.append('resume_id', data.resumeId);
+    }
+    
     formData.append('job_role', data.jobRole);
     if (data.jobDescription) {
       formData.append('job_description', data.jobDescription);
@@ -50,8 +58,13 @@ export const resumeService = {
       formData.append('user_id', data.userId);
     }
 
+    const token = gatewayAuthService.getGatewayToken();
+
     const response = await fetch('http://localhost:8000/resume/analyze', {
       method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
       body: formData,
     });
 

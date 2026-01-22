@@ -25,6 +25,7 @@ import ResumeAnalyzer from "@/pages/ResumeAnalyzer";
 import Settings from "@/pages/Settings";
 import EvaluateDemo from "@/pages/EvaluateDemo";
 import ProjectStudio from "@/pages/ProjectStudio";
+import ShowcasePage from "@/pages/Showcase";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
@@ -168,6 +169,13 @@ const App = () => (
                 <Layout>
                   <ProtectedRoute>
                     <ProjectStudio />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+              <Route path="/showcase" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <ShowcasePage />
                   </ProtectedRoute>
                 </Layout>
               } />
