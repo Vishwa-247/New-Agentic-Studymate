@@ -64,6 +64,12 @@ timeout /t 2 /nobreak >nul
 start "Orchestrator - Port 8011" cmd /k "cd /d %~dp0 && venv\Scripts\activate && cd orchestrator && python -m uvicorn main:app --host 0.0.0.0 --port 8011 --reload"
 timeout /t 2 /nobreak >nul
 
+start "Project Studio - Port 8012" cmd /k "cd /d %~dp0 && venv\Scripts\activate && cd agents\project-studio && python -m uvicorn main:app --host 0.0.0.0 --port 8012 --reload"
+timeout /t 2 /nobreak >nul
+
+start "Job Search Agent - Port 8013" cmd /k "cd /d %~dp0 && venv\Scripts\activate && cd agents\job-search && python -m uvicorn main:app --host 0.0.0.0 --port 8013 --reload"
+timeout /t 2 /nobreak >nul
+
 echo.
 echo ✅ All services started successfully!
 echo.
@@ -78,6 +84,7 @@ echo    - Unified DSA Service: http://localhost:8004 (Progress + AI Feedback + C
 echo    - Emotion Detection:   http://localhost:5000
 echo    - Evaluator:           http://localhost:8010 (NEW - LLM Scoring)
 echo    - Orchestrator:        http://localhost:8011 (v1.1 - Rules + Memory System)
+echo    - Project Studio:      http://localhost:8012 (Demo Mock Swarm)
 echo.
 echo 📖 API Documentation: http://localhost:8000/docs
 echo.

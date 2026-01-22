@@ -16,7 +16,7 @@ import DSATopic from "@/pages/DSATopic";
 import FutureIntegrations from "@/pages/FutureIntegrations";
 import Index from "@/pages/Index";
 import InterviewResult from "@/pages/InterviewResult";
-import InterviewJourney from "@/pages/InterviewJourney";
+
 import MockInterview from "@/pages/MockInterview";
 import NotFound from "@/pages/NotFound";
 import Onboarding from "@/pages/Onboarding";
@@ -24,6 +24,7 @@ import ProfileBuilder from "@/pages/ProfileBuilder";
 import ResumeAnalyzer from "@/pages/ResumeAnalyzer";
 import Settings from "@/pages/Settings";
 import EvaluateDemo from "@/pages/EvaluateDemo";
+import ProjectStudio from "@/pages/ProjectStudio";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
@@ -121,13 +122,7 @@ const App = () => (
                   </ProtectedRoute>
                 </Layout>
               } />
-              <Route path="interview-journey" element={
-                <Layout>
-                  <ProtectedRoute>
-                    <InterviewJourney />
-                  </ProtectedRoute>
-                </Layout>
-              } />
+
               <Route path="dashboard" element={
                 <Layout>
                   <ProtectedRoute>
@@ -167,6 +162,13 @@ const App = () => (
               <Route path="evaluate-demo" element={
                 <Layout>
                   <EvaluateDemo />
+                </Layout>
+              } />
+              <Route path="/project-studio" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <ProjectStudio />
+                  </ProtectedRoute>
                 </Layout>
               } />
               <Route path="*" element={<NotFound />} />

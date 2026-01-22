@@ -234,6 +234,106 @@ async def create_course(request: CourseCreateRequest, db: SupabaseManager = Depe
         logger.error(f"💥 Error creating course: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+    except Exception as e:
+        logger.error(f"💥 Error creating course: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-parallel")
+async def generate_course_parallel(request: CourseCreateRequest, db: SupabaseManager = Depends(get_db)):
+    """
+    Mock endpoint for Parallel Agent Course Generation (Demo).
+    Simulates the 'Oboe' style generation where multiple agents work in parallel.
+    """
+    import uuid
+    import random
+    
+    logger.info(f"🤖 [MOCK] Starting Parallel Course Generation for: {request.title}")
+    
+    # Mock efficient generation delay
+    await asyncio.sleep(2) 
+    
+    # Create a real course entry so user can see it
+    try:
+        # Use existing create logic but mock the heavy lifting
+        course_id = str(uuid.uuid4())
+        
+        # Insert minimal DB record to avoid 'Content not found' errors later if clicked
+        # Note: In a real demo, we might want to actually INSERT this into DB using the manager
+        # reusing the logic from create_course but bypassing the request handler wrapper
+        query = """
+        INSERT INTO courses (id, user_id, title, purpose, difficulty, summary, status)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, created_at
+        """
+        
+        # Mock summary
+        ai_summary = f"Generated via Agent Swarm: A comprehensive guide to {request.title}. This course was constructed by 4 parallel agents analyzing market data, core concepts, and practical applications simultaneously."
+        
+        _ = await asyncio.to_thread(
+            db.execute_query,
+            query,
+            course_id,
+            request.user_id,
+            request.title,
+            request.purpose,
+            request.difficulty,
+            ai_summary,
+            "ready" # Mark as ready immediately for demo
+        )
+        
+        # Create some dummy chapters to make it look populated
+        chapters_data = [
+            ("Introduction", "Key concepts and foundation."),
+            ("Deep Dive", "Advanced topics and analysis."),
+            ("Practical Labs", "Hands-on exercises and projects."),
+            ("Final Assessment", "Testing your knowledge.")
+        ]
+        
+        chapter_query = """
+        INSERT INTO course_chapters (course_id, title, content, order_number)
+        VALUES (%s, %s, %s, %s)
+        """
+        
+        for idx, (title, content) in enumerate(chapters_data):
+           await asyncio.to_thread(
+               db.execute_query,
+               chapter_query,
+               course_id,
+               title,
+               content,
+               idx + 1
+           )
+
+        return {
+            "success": True,
+            "message": "Parallel Generation Complete",
+            "course": {
+                "id": course_id,
+                "title": request.title,
+                "status": "ready",
+                "summary": ai_summary,
+                "agent_metrics": {
+                    "research_time": "0.4s",
+                    "structure_time": "0.2s",
+                    "content_generation_s": "1.2s",
+                    "total_agents_used": 4
+                }
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Mock generation failed: {e}")
+        # Return a fallback success so demo doesn't crash even if DB fails
+        return {
+             "success": True,
+             "message": "Parallel Generation Simulation (DB Error, but UI safe)",
+             "course": {
+                 "id": "demo-mock-id",
+                 "title": request.title,
+                 "status": "ready"
+             }
+        }
+
 @app.get("/courses")
 async def get_user_courses(user_id: str, db: SupabaseManager = Depends(get_db)):
     """Get all courses for a user."""

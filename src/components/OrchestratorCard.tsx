@@ -46,11 +46,7 @@ const MODULE_CONFIG: Record<string, {
     icon: Video,
     label: "Mock Interview",
   },
-  interview_journey: {
-    route: "/interview-journey",
-    icon: Video,
-    label: "Interview Journey",
-  },
+
   onboarding: {
     route: "/onboarding",
     icon: Bot,

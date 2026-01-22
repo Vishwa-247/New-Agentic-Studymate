@@ -32,6 +32,7 @@ const Navbar = () => {
   const navLinks = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Courses", href: "/courses" },
+    { name: "Project Studio", href: "/project-studio" },
     { name: "DSA Sheet", href: "/dsa-sheet" },
     { name: "Mock Interview", href: "/mock-interview" },
     { name: "Resume Analyzer", href: "/resume-analyzer" },

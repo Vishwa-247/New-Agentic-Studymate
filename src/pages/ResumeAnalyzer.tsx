@@ -1,135 +1,93 @@
-import Layout from '@/components/layout/Layout';
-import { AnalysisHistory } from '@/components/resume/AnalysisHistory';
-import { EnhancedAnalysisResults } from '@/components/resume/EnhancedAnalysisResults';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useResumeCache } from '@/context/ResumeContext';
-import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Upload, FileText, Loader2, Sparkles, History, Search, Check, AlertCircle } from "lucide-react";
+import { AnalysisHistory } from "@/components/resume/AnalysisHistory";
+import { EnhancedAnalysisResults } from "@/components/resume/EnhancedAnalysisResults";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft,
-  Brain,
-  Briefcase,
-  ChevronRight,
-  FileText,
-  History,
-  Loader2,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  Upload
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-interface AnalysisStep {
-  id: 'job-role' | 'upload' | 'results';
-  title: string;
-  completed: boolean;
-}
-
-interface ProfileResume {
-  id: string;
-  filename: string;
-  file_path: string;
-  upload_date: string;
-  processing_status: string;
-  analysis_count?: number;
-  last_analyzed_at?: string;
-  file_size?: number;
-}
-
-const ResumeAnalyzer = () => {
-  const { user } = useAuth();
-  const { cachedResumes, addResume, removeResume } = useResumeCache();
-  const [currentStep, setCurrentStep] = useState<'job-role' | 'upload' | 'results'>('job-role');
-  const [jobRole, setJobRole] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
+export default function ResumeAnalyzer() {
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  
+  // Input States
+  const [jobRole, setJobRole] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedProfileResume, setSelectedProfileResume] = useState<ProfileResume | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<any>(null);
-  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [existingResumes, setExistingResumes] = useState<ProfileResume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
-  const [showResumeSelector, setShowResumeSelector] = useState(true);
+  const [selectedResumeName, setSelectedResumeName] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const steps: AnalysisStep[] = [
-    { id: 'job-role', title: 'Job Details', completed: !!jobRole },
-    { id: 'upload', title: 'Upload Resume', completed: !!(selectedFile || selectedResumeId) },
-    { id: 'results', title: 'Analysis Results', completed: !!analysisResults }
-  ];
+  // Analysis States
+  const [loading, setLoading] = useState(false);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
 
-  // Load existing resumes when component mounts
-  const loadExistingResumes = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const response = await fetch(`http://localhost:8003/user-resumes/${user.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setExistingResumes(data.resumes || []);
-        if (data.resumes && data.resumes.length > 0) {
-          console.log(`✅ Loaded ${data.resumes.length} existing resumes`);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load existing resumes:', error);
-    }
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
+
+  // Handle Drag & Drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
   };
 
-  React.useEffect(() => {
-    loadExistingResumes();
-  }, [user]);
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
 
-  const handleJobRoleNext = () => {
-    if (!jobRole.trim()) {
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type === "application/pdf" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+      setSelectedFile(file);
+      setSelectedResumeId(null);
+      setSelectedResumeName(file.name);
       toast({
-        title: "Job Role Required",
-        description: "Please enter the job role you're applying for",
+        title: "Resume Uploaded",
+        description: `Ready to analyze: ${file.name}`,
+      });
+    } else {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF or DOCX file.",
         variant: "destructive",
       });
-      return;
     }
-    toast({
-      title: "Step Complete!",
-      description: "Job details saved. Now upload your resume.",
-    });
-    setCurrentStep('upload');
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setSelectedProfileResume(null);
       setSelectedResumeId(null);
-      
-      // Cache the resume in local storage
-      try {
-        await addResume(file);
-        console.log('✅ Resume cached in local storage');
-      } catch (error) {
-        console.error('Failed to cache resume:', error);
-      }
-      
-      toast({
-        title: "File Selected!",
-        description: `${file.name} is ready for analysis`,
-      });
+      setSelectedResumeName(file.name);
     }
   };
 
+  // Trigger Analysis
   const handleAnalyze = async () => {
-    if (!selectedFile && !selectedResumeId) {
+    if ((!selectedFile && !selectedResumeId) || !jobDescription) {
       toast({
-        title: "Resume Required",
-        description: "Please upload a resume or select an existing one",
+        title: "Missing Information",
+        description: "Please provide both a resume and a job description.",
         variant: "destructive",
       });
       return;
@@ -137,21 +95,19 @@ const ResumeAnalyzer = () => {
 
     try {
       setLoading(true);
-      
       toast({
-        title: "Analysis Starting...",
-        description: "AI is analyzing your resume with advanced techniques",
+        title: "Analysis Starting",
+        description: "Analyzing your resume against the job description...",
       });
       
       const formData = new FormData();
-      
       if (selectedFile) {
         formData.append('resume', selectedFile);
       } else if (selectedResumeId) {
         formData.append('resume_id', selectedResumeId);
       }
       
-      formData.append('job_role', jobRole);
+      formData.append('job_role', jobRole || "Candidate");
       formData.append('job_description', jobDescription);
       if (user?.id) {
         formData.append('user_id', user.id);
@@ -169,21 +125,18 @@ const ResumeAnalyzer = () => {
 
       const data = await response.json();
       setAnalysisResults(data.analysis);
-      setCurrentStep('results');
-      
-      // Reload existing resumes to update analysis count
-      await loadExistingResumes();
+      setAnalysisComplete(true);
       
       toast({
-        title: "🎉 Analysis Complete!",
-        description: "Your resume has been analyzed with action words and STAR methodology",
+        title: "Scan Complete",
+        description: "Your comprehensive match report is ready.",
       });
 
     } catch (error) {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "There was an error analyzing your resume. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error analyzing your resume.",
         variant: "destructive",
       });
     } finally {
@@ -191,595 +144,214 @@ const ResumeAnalyzer = () => {
     }
   };
 
-  const handleAnalysisSelect = async (analysisId: string) => {
-    try {
-      setLoading(true);
-      toast({
-        title: "Loading Analysis...",
-        description: "Retrieving your previous analysis results",
-      });
-      
-      const response = await fetch(`http://localhost:8003/analysis/${analysisId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch analysis');
-      }
-      
-      const data = await response.json();
-      const analysis = data.analysis;
-      
-      setAnalysisResults(JSON.parse(analysis.analysis_results));
-      setJobRole(analysis.job_role);
-      setJobDescription(analysis.job_description || '');
-      setSelectedAnalysisId(analysisId);
-      setCurrentStep('results');
-      
-      toast({
-        title: "Analysis Loaded!",
-        description: "Previous analysis results are now displayed",
-      });
-      
-    } catch (error) {
-      console.error('Error fetching analysis:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load analysis details",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const startNewAnalysis = () => {
-    setCurrentStep('job-role');
-    setJobRole('');
-    setJobDescription('');
+  const handleSelectHistory = (resume: any) => {
+    setSelectedResumeId(resume.id);
     setSelectedFile(null);
-    setSelectedProfileResume(null);
-    setAnalysisResults(null);
-    setSelectedAnalysisId('');
+    setSelectedResumeName(resume.file_name || "Existing Resume");
+    setIsHistoryOpen(false); // Close modal
     toast({
-      title: "New Analysis Started",
-      description: "Ready to analyze another resume!",
+      title: "Resume Selected",
+      description: `Using previously uploaded: ${resume.file_name}`,
     });
   };
 
-  const navigate = useNavigate();
-  return (
-    <Layout className="pt-4">
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-4">
-          {/* Enhanced Header with History Toggle */}
-          <div className="mb-4 flex items-start justify-between">
-            <div className="text-center flex-1">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="relative">
-                  <Brain className="h-10 w-10 text-primary" />
-                  <Sparkles className="h-4 w-4 text-primary absolute -top-1 -right-1 animate-pulse" />
-                </div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                  Resume Analyzer
-                </h1>
-              </div>
-              <p className="text-base text-muted-foreground max-w-2xl mx-auto mb-4">
-                Enhanced AI-powered analysis with action words and STAR methodology scoring
-              </p>
-              
-              {/* Progress Indicator */}
-              <div className="max-w-md mx-auto">
-                <div className="flex items-center justify-center mb-2">
-                  {steps.map((step, index) => (
-                    <div key={step.id} className="flex items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                        currentStep === step.id 
-                          ? 'bg-primary text-primary-foreground' 
-                          : step.completed 
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div className={`w-16 h-0.5 mx-2 transition-all ${
-                          steps[index + 1].completed ? 'bg-primary' : 'bg-muted'
-                        }`} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-center text-sm text-muted-foreground gap-8">
-                  {steps.map((step) => (
-                    <span key={step.id} className={currentStep === step.id ? 'text-primary font-medium' : ''}>
-                      {step.title}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center gap-2"
-              >
-                <History className="h-5 w-5" />
-                {showHistory ? 'Hide History' : 'Show History'}
-              </Button>
-            </div>
-          </div>
+  // If analysis is done, show results (Dashboard View)
+  if (analysisComplete && analysisResults) {
+    return (
+      <div className="container mx-auto px-4 py-8 animate-in fade-in duration-500">
+        <Button 
+          variant="ghost" 
+          onClick={() => setAnalysisComplete(false)}
+          className="mb-6 pl-0 hover:bg-transparent hover:text-primary"
+        >
+          ← Start New Scan
+        </Button>
+        <EnhancedAnalysisResults 
+          results={analysisResults} 
+          jobRole={jobRole}
+          resumeName={selectedResumeName || "Uploaded Resume"}
+        />
+      </div>
+    );
+  }
 
-          <div className="max-w-7xl mx-auto">
-            <div className={`grid gap-6 ${showHistory ? 'lg:grid-cols-4' : 'grid-cols-1'}`}>
-              {/* History Sidebar - Conditionally Rendered */}
-              {showHistory && (
-                <div className="lg:col-span-1">
-                  <AnalysisHistory 
-                    onSelectAnalysis={handleAnalysisSelect}
-                    selectedAnalysisId={selectedAnalysisId}
+  // Default: Input View (Structure & Theme Consistent)
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Optimize Your Resume</h1>
+            <p className="text-muted-foreground mt-1 text-lg">
+              Compare your resume against any job description regarding ATS & skills.
+            </p>
+          </div>
+          
+          <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <History className="w-4 h-4" /> History
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Analysis History</DialogTitle>
+                <DialogDescription>
+                  Select a previously analyzed resume to use again.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4">
+                 <AnalysisHistory onSelectAnalysis={handleSelectHistory} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Card 1: Resume Upload */}
+          <Card className="flex flex-col h-full border-border shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">1</div>
+                Upload Resume
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-6 space-y-6">
+              
+              <div 
+                className={`
+                  border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer
+                  ${isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'}
+                  ${selectedFile || selectedResumeId ? 'border-green-500/50 bg-green-50/50' : ''}
+                `}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-upload')?.click()}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className={`
+                    w-12 h-12 rounded-full flex items-center justify-center transition-colors
+                    ${selectedFile || selectedResumeId ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'}
+                  `}>
+                    {selectedFile || selectedResumeId ? <FileText className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
+                  </div>
+                  
+                  {selectedFile || selectedResumeId ? (
+                    <div className="space-y-1">
+                      <p className="font-medium text-foreground text-sm">
+                        {selectedResumeName}
+                      </p>
+                      <p className="text-xs text-green-600 font-medium flex items-center justify-center gap-1.5">
+                        <Check className="w-3 h-3" /> Ready for scan
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          setSelectedResumeId(null);
+                          setSelectedResumeName(null);
+                        }}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 text-xs mt-2"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="font-medium text-foreground">Click to upload or drag & drop</p>
+                      <p className="text-xs text-muted-foreground">PDF or DOCX (Max 5MB)</p>
+                      <input 
+                        id="file-upload"
+                        type="file" 
+                        className="hidden"
+                        onChange={handleFileSelect}
+                        accept=".pdf,.docx"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="rounded-md bg-blue-50/50 border border-blue-100 p-4">
+                <div className="flex gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-600 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-900">Pro Tip</p>
+                    <p className="text-sm text-blue-700 leading-snug">
+                       Use a text-based PDF/DOCX. Scanned images cannot be read by ATS software.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Job Description */}
+          <Card className="flex flex-col h-full border-border shadow-sm">
+             <CardHeader className="bg-muted/30 border-b border-border pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">2</div>
+                Job Description
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-6 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Job Title <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+                  </label>
+                  <Input 
+                    placeholder="e.g. Senior Frontend Developer" 
+                    value={jobRole}
+                    onChange={(e) => setJobRole(e.target.value)}
+                    className="bg-background"
                   />
                 </div>
-              )}
-
-              {/* Main Content */}
-              <div className={showHistory ? 'lg:col-span-3' : 'col-span-1'}>
-                <div className="space-y-6">
-                  {currentStep === 'job-role' && (
-                    <Card className="border border-border bg-card">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Briefcase className="h-6 w-6 text-primary" />
-                          </div>
-                          Job Information
-                        </CardTitle>
-                        <p className="text-muted-foreground">
-                          Tell us about the position you're applying for
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="jobRole" className="text-sm font-medium">
-                            Job Role / Position *
-                          </Label>
-                          
-                          {/* Popular Role Suggestions */}
-                          {!jobRole && (
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Data Scientist', 'DevOps Engineer', 'Product Manager', 'Software Engineer'].map((role) => (
-                                <Badge
-                                  key={role}
-                                  variant="outline"
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-xs"
-                                  onClick={() => setJobRole(role)}
-                                >
-                                  {role}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          
-                          <Input
-                            id="jobRole"
-                            placeholder="e.g., Software Engineer, Product Manager"
-                            value={jobRole}
-                            onChange={(e) => setJobRole(e.target.value)}
-                            className="h-11"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="jobDescription" className="text-sm font-medium">
-                            Job Description (Optional)
-                          </Label>
-                          
-                          {/* Quick Suggestions */}
-                          {!jobDescription && (
-                            <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-muted-foreground/20">
-                              <p className="text-xs font-medium text-muted-foreground">Quick Start Templates:</p>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  onClick={() => setJobDescription("We are looking for a skilled developer with strong experience in modern web technologies. Responsibilities include developing scalable applications, collaborating with cross-functional teams, and implementing best practices.")}
-                                >
-                                  General Developer
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  onClick={() => setJobDescription("Seeking a frontend developer proficient in React, TypeScript, and modern CSS frameworks. Experience with responsive design, state management, and performance optimization required. Build user-friendly interfaces and collaborate with designers.")}
-                                >
-                                  Frontend Developer
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  onClick={() => setJobDescription("Backend developer needed with expertise in API development, database design, and server-side technologies. Experience with Python/Node.js, RESTful APIs, microservices, and cloud platforms (AWS/Azure) required.")}
-                                >
-                                  Backend Developer
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  onClick={() => setJobDescription("Full stack developer to build and maintain web applications. Required skills: JavaScript/TypeScript, React/Vue, Node.js, databases (SQL/NoSQL), Git, CI/CD. Experience with agile methodologies and cloud deployment preferred.")}
-                                >
-                                  Full Stack Developer
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  onClick={() => setJobDescription("Data Scientist to analyze complex datasets and build ML models. Required: Python, SQL, pandas, scikit-learn, TensorFlow/PyTorch. Experience with statistical analysis, data visualization, and big data technologies. Strong communication skills essential.")}
-                                >
-                                  Data Scientist
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <Textarea
-                            id="jobDescription"
-                            placeholder="Paste the job description here for more targeted analysis..."
-                            value={jobDescription}
-                            onChange={(e) => setJobDescription(e.target.value)}
-                            rows={6}
-                            className="resize-none"
-                          />
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">
-                              Including the job description will provide more accurate keyword matching
-                            </p>
-                            {jobDescription && (
-                              <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setJobDescription('')}
-                                className="text-xs h-7"
-                              >
-                                Clear
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          onClick={handleJobRoleNext} 
-                          className="w-full h-11"
-                          disabled={!jobRole.trim()}
-                        >
-                          Continue to Upload
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {currentStep === 'upload' && (
-                    <div className="space-y-6">
-                      <Card className="border border-border bg-card">
-                        <CardHeader className="pb-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="flex items-center gap-2 text-xl">
-                                <div className="p-2 rounded-lg bg-primary/10">
-                                  <Upload className="h-6 w-6 text-primary" />
-                                </div>
-                                Upload Resume
-                              </CardTitle>
-                              <p className="text-muted-foreground mt-1">
-                                Choose a resume file to analyze
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setCurrentStep('job-role')}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <ArrowLeft className="h-4 w-4 mr-2" />
-                              Back
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center hover:border-primary/40 transition-colors bg-primary/5">
-                            <div className="flex flex-col items-center">
-                              <div className="p-4 rounded-full bg-primary/10 mb-4">
-                                <Upload className="h-8 w-8 text-primary" />
-                              </div>
-                              <h3 className="font-semibold mb-2">Drop your resume here</h3>
-                              <p className="text-sm text-muted-foreground mb-4">
-                                Supports PDF and DOCX files up to 10MB
-                              </p>
-                              <input
-                                type="file"
-                                accept=".pdf,.docx"
-                                onChange={handleFileUpload}
-                                className="hidden"
-                                id="resume-upload"
-                              />
-                              <Label htmlFor="resume-upload" className="cursor-pointer">
-                                <Button variant="outline" className="h-11" asChild>
-                                  <span>
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    Choose File
-                                  </span>
-                                </Button>
-                              </Label>
-                            </div>
-                            
-                            {selectedFile && (
-                              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                                <div className="flex items-center justify-center gap-2">
-                                  <FileText className="h-4 w-4 text-primary" />
-                                  <span className="text-sm font-medium text-primary">
-                                    {selectedFile.name}
-                                  </span>
-                                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                    Ready
-                                  </Badge>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Recently Uploaded Resumes from Cache */}
-                          {cachedResumes.length > 0 && (
-                            <div className="mt-6">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-semibold text-foreground">Recently Uploaded</h4>
-                                <Badge variant="secondary" className="text-xs">
-                                  {cachedResumes.length} {cachedResumes.length === 1 ? 'file' : 'files'}
-                                </Badge>
-                              </div>
-                              <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {cachedResumes.map((resume) => (
-                                  <div
-                                    key={resume.id}
-                                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-muted hover:border-primary/50 transition-colors group"
-                                  >
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{resume.filename}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {new Date(resume.uploadDate).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={async () => {
-                                          // Convert base64 back to File
-                                          const response = await fetch(resume.fileData);
-                                          const blob = await response.blob();
-                                          const file = new File([blob], resume.filename, { type: blob.type });
-                                          setSelectedFile(file);
-                                          setSelectedResumeId(null);
-                                          toast({
-                                            title: "Resume Loaded",
-                                            description: `Using ${resume.filename}`,
-                                          });
-                                        }}
-                                        className="text-xs h-7"
-                                      >
-                                        Use
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          removeResume(resume.id);
-                                          toast({
-                                            title: "Resume Removed",
-                                            description: "Removed from local cache",
-                                          });
-                                        }}
-                                        className="text-xs h-7 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {selectedFile && (
-                            <Button 
-                              onClick={handleAnalyze} 
-                              className="w-full mt-6 h-11"
-                              disabled={loading}
-                            >
-                              {loading ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Analyzing Resume...
-                                </>
-                              ) : (
-                                <>
-                                  <Brain className="h-4 w-4 mr-2" />
-                                  Analyze Resume with AI
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Existing Resumes Selector */}
-                      {existingResumes.length > 0 && showResumeSelector && (
-                        <>
-                          <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-muted" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                              <span className="bg-background px-2 text-muted-foreground">Or Select from Existing</span>
-                            </div>
-                          </div>
-                          
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <FileText className="h-5 w-5" />
-                                Your Uploaded Resumes
-                              </CardTitle>
-                              <p className="text-sm text-muted-foreground">
-                                Select a previously uploaded resume to analyze
-                              </p>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                {existingResumes.map((resume) => (
-                                  <div
-                                    key={resume.id}
-                                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                                      selectedResumeId === resume.id
-                                        ? 'border-primary bg-primary/5 shadow-sm'
-                                        : 'border-border hover:border-primary/50'
-                                    }`}
-                                    onClick={() => {
-                                      setSelectedResumeId(resume.id);
-                                      setSelectedFile(null);
-                                      toast({
-                                        title: "Resume Selected",
-                                        description: `Using ${resume.filename}`,
-                                      });
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3 flex-1">
-                                        <div className={`p-2 rounded-lg ${
-                                          selectedResumeId === resume.id 
-                                            ? 'bg-primary/20' 
-                                            : 'bg-muted'
-                                        }`}>
-                                          <FileText className={`h-5 w-5 ${
-                                            selectedResumeId === resume.id 
-                                              ? 'text-primary' 
-                                              : 'text-muted-foreground'
-                                          }`} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium truncate">{resume.filename}</p>
-                                          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                                            <span>Uploaded {new Date(resume.upload_date).toLocaleDateString()}</span>
-                                            {resume.analysis_count && resume.analysis_count > 0 && (
-                                              <>
-                                                <span>•</span>
-                                                <Badge variant="secondary" className="text-xs">
-                                                  Analyzed {resume.analysis_count} {resume.analysis_count === 1 ? 'time' : 'times'}
-                                                </Badge>
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {selectedResumeId === resume.id && (
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="default" className="bg-primary">
-                                            Selected
-                                          </Badge>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              
-                              {selectedResumeId && (
-                                <Button 
-                                  onClick={handleAnalyze} 
-                                  className="w-full mt-4 h-11"
-                                  disabled={loading}
-                                >
-                                  {loading ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Analyzing Resume...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Brain className="h-4 w-4 mr-2" />
-                                      Analyze Selected Resume with AI
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                              
-                              <Button
-                                variant="ghost"
-                                className="w-full mt-2"
-                                onClick={() => setShowResumeSelector(false)}
-                              >
-                                Hide Existing Resumes
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                      
-                      {existingResumes.length > 0 && !showResumeSelector && (
-                        <Card className="bg-muted/30">
-                          <CardContent className="pt-6">
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => setShowResumeSelector(true)}
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Show My Uploaded Resumes ({existingResumes.length})
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  )}
-
-                  {currentStep === 'results' && analysisResults && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="flex items-center justify-between p-6 bg-primary/10 rounded-lg border border-primary/20">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/20">
-                            <TrendingUp className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <h2 className="text-2xl font-semibold">Analysis Complete</h2>
-                            <p className="text-muted-foreground">
-                              for {jobRole}
-                            </p>
-                          </div>
-                        </div>
-                        <Button onClick={startNewAnalysis} variant="outline">
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          New Analysis
-                        </Button>
-                      </div>
-
-                      <EnhancedAnalysisResults 
-                        analysisData={analysisResults}
-                        jobRole={jobRole}
-                      />
-                    </div>
-                  )}
+                
+                <div className="space-y-2 flex-1 flex flex-col">
+                  <label className="text-sm font-medium text-foreground">
+                    Job Description <span className="text-destructive">*</span>
+                  </label>
+                  <Textarea 
+                    placeholder="Paste the full job description here..." 
+                    className="min-h-[200px] flex-1 font-mono text-xs bg-background resize-none focus-visible:ring-primary"
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                  />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
-};
+            </CardContent>
+          </Card>
 
-export default ResumeAnalyzer;
+        </div>
+
+        {/* Action Button */}
+        <div className="mt-8 flex justify-end">
+            <Button
+              size="lg"
+              onClick={handleAnalyze}
+              disabled={loading || !jobDescription || (!selectedFile && !selectedResumeId)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 h-12 shadow-sm transition-all text-base"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  Scan & Match Findings <Search className="w-5 h-5 ml-2" />
+                </>
+              )}
+            </Button>
+        </div>
+
+      </div>
+    </div>
+  );
+}

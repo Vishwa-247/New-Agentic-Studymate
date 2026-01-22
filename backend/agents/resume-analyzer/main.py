@@ -112,9 +112,42 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-# Utility functions
+# Optional Docling import
+try:
+    from llama_index.readers.docling import DoclingReader
+    from llama_index.core import SimpleDirectoryReader
+    DOCLING_AVAILABLE = True
+    print("✅ Docling is available for advanced PDF parsing")
+except ImportError:
+    DOCLING_AVAILABLE = False
+    print("⚠️  Docling not found, using PyPDF2 fallback")
+
 def extract_text_from_pdf(file_content: bytes) -> str:
-    """Extract text from PDF file"""
+    """Extract text from PDF file using Docling (preferred) or PyPDF2"""
+    # Try Docling First (Advanced Parsing)
+    if DOCLING_AVAILABLE:
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                pdf_path = os.path.join(temp_dir, "resume.pdf")
+                with open(pdf_path, "wb") as f:
+                    f.write(file_content)
+                
+                print("Using Docling for PDF extraction...")
+                reader = DoclingReader()
+                # SimpleDirectoryReader with Docling
+                loader = SimpleDirectoryReader(
+                    input_dir=temp_dir,
+                    file_extractor={".pdf": reader},
+                )
+                docs = loader.load_data()
+                text = "\n\n".join([doc.text for doc in docs])
+                print(f"✅ Docling extraction successful ({len(text)} chars)")
+                return text
+        except Exception as e:
+            print(f"❌ Docling extraction failed: {e}")
+            print("Falling back to PyPDF2...")
+
+    # Fallback to PyPDF2
     try:
         pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
         text = ""

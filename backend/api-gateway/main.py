@@ -59,7 +59,10 @@ AGENT_SERVICES = {
     "course-generation": os.getenv("COURSE_GENERATION_URL", "http://localhost:8008"),
     "interview-coach": os.getenv("INTERVIEW_COACH_URL", "http://localhost:8002"),
     "evaluator": os.getenv("EVALUATOR_URL", "http://localhost:8010"),
+    "evaluator": os.getenv("EVALUATOR_URL", "http://localhost:8010"),
     "orchestrator": os.getenv("ORCHESTRATOR_URL", "http://localhost:8011"),
+    "project-studio": os.getenv("PROJECT_STUDIO_URL", "http://localhost:8012"),
+    "job-search": os.getenv("JOB_SEARCH_URL", "http://localhost:8013"),
 }
 
 # JWT Configuration
@@ -578,6 +581,30 @@ async def api_next(user_id: str):
     except httpx.RequestError as e:
         logger.error(f"Orchestrator service unavailable: {e}")
         raise HTTPException(status_code=503, detail="Orchestrator service unavailable")
+
+@app.post("/api/project-studio/{path:path}")
+async def api_project_studio(path: str, request: Request, user_id: str = Depends(verify_token)):
+    """
+    Forward to Project Studio agents.
+    """
+    try:
+        payload = await request.json()
+    except:
+        payload = {}
+        
+    return await forward_to_agent("project-studio", f"/agent/{path}", "POST", payload)
+
+@app.post("/api/job-search/{path:path}")
+async def api_job_search(path: str, request: Request, user_id: str = Depends(verify_token)):
+    """
+    Forward to Job Search Agent.
+    """
+    try:
+        payload = await request.json()
+    except:
+        payload = {}
+        
+    return await forward_to_agent("job-search", f"/{path}", "POST", payload)
 
 
 if __name__ == "__main__":
