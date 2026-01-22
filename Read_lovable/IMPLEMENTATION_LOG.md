@@ -188,4 +188,50 @@
 
 ### Next Step
 - [What follows]
-```
+
+---
+
+## 2026-01-22: Phase 2 - Resume Analyzer Enhancements & Job Search Agent
+
+**Phase**: Phase 2 (Intelligent Agents & Refinements)
+**Implementer**: Antigravity AI
+**Commit**: `feat: Enhance Resume Analyzer with Docling, AiSuggestions, and add Job Search Agent`
+
+### What Was Done
+
+#### Resume Analyzer Enhancements (UI & Backend)
+- **Refined UI**: Ported the "AI Suggestions" UI style from the Mock Interview page (dot + primary color list) into a reusable `AiSuggestions.tsx` component.
+- **Jobscan-style Dashboard**: 
+  - Refactored `EnhancedAnalysisResults.tsx` to use a tabbed interface (Searchability, Hard Skills, Soft Skills, Tips, Formatting, Job Matches).
+  - Added `CircularScore.tsx` for visual "Match Rate" display.
+  - Added `SearchabilityChecklist.tsx` for ATS compliance feedback.
+- **Advanced Parsing**: Integrated `docling` (via `llama-index-readers-docling`) into `backend/agents/resume-analyzer/main.py` for superior PDF table and layout extraction (with fallback to PyPDF2).
+
+#### Intelligent Job Search Agent (New Service)
+- **Service Creation**: Created `backend/agents/job-search/main.py`.
+- **Search Logic**: Integrated `firecrawl-py` (Firecrawl MCP) for live web searching of job listings.
+- **Matching Logic**: Implemented "RAG-lite" using `Groq` to compare job snippets against the user's resume summary and assign a match score with reasoning.
+- **Frontend Integration**: Created `JobRecommendations.tsx` to display live job matches within the Resume Analyzer results.
+- **Infrastructure**: 
+  - Registered `job-search` service in `backend/api-gateway/main.py`.
+  - Added startup command to `backend/start.bat`.
+
+### What Worked
+- ✅ **Consistent UI**: The "AI Suggestions" component unifies the look and feel across modules.
+- ✅ **Infrastructure**: New microservice integrated seamlessly with the existing API Gateway and Startup scripts.
+- ✅ **Advanced & Fallback**: Docling provides power, but the system remains robust with PyPDF2 fallback.
+
+### Technical Decisions
+- **Why Firecrawl?**: Chosen for its ability to turn web search into clean LLM-ready data, essential for live job matching.
+- **Why RAG-lite?**: Instead of full vector DB storage for transient job searches, we perform on-the-fly "context-aware ranking" using the LLM, which is faster for this specific use case.
+- **Reusability**: `AiSuggestions` was extracted to avoid code duplication between Mock Interview and Resume Analyzer.
+
+### Verification
+- [x] Backend services start without errors.
+- [x] API Gateway routes `/api/job-search/*` correctly.
+- [x] Frontend builds and renders the new Dashboard layout.
+
+### Next Steps
+- **User Action**: Configure `FIRECRAWL_API_KEY` in `.env`.
+- **Testing**: End-to-end test of the "Find Matching Jobs" flow with real data.
+
