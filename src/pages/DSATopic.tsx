@@ -14,6 +14,8 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useDSAProgress } from '@/hooks/useDSAProgress';
 import { dsaService } from "@/api/services/dsaService";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DSATopicVisualizerTab from "@/components/dsa/DSATopicVisualizerTab";
 
 const DSATopic = () => {
   const { topicId } = useParams();
@@ -24,19 +26,6 @@ const DSATopic = () => {
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
   const [filters, setFilters] = useState({ difficulty: [] });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-
-  if (!topic) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Topic not found</h1>
-          <Link to="/dsa-sheet">
-            <Button>Back to DSA Sheet</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   const handleToggleProblem = useCallback(async (problemName: string) => {
     const result = toggleProblemForFeedback(problemName);
@@ -74,6 +63,19 @@ const DSATopic = () => {
   }, [topic, filters, isFavorite, showFavoritesOnly]);
 
   const progressPercentage = topic ? (completedProblems.size / topic.problems.length) * 100 : 0;
+
+  if (!topic) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Topic not found</h1>
+          <Link to="/dsa-sheet">
+            <Button>Back to DSA Sheet</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -120,24 +122,35 @@ const DSATopic = () => {
           </div>
 
           {/* Filters - Positioned at top */}
-          <RouteFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            favorites={favorites.problems}
-            onToggleFavorite={(problemName) => toggleFavorite('problem', problemName)}
-            showFavoritesOnly={showFavoritesOnly}
-            onShowFavoritesChange={setShowFavoritesOnly}
-          />
+          <Tabs defaultValue="problems" className="w-full">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <TabsList>
+                <TabsTrigger value="problems">Problems</TabsTrigger>
+                <TabsTrigger value="visualizer">Visualizer</TabsTrigger>
+              </TabsList>
 
-          {/* Problems List */}
-          <div className="space-y-3">
-            {filteredProblems.map((problem, index) => {
+              <div className="w-full sm:w-auto">
+                <RouteFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  favorites={favorites.problems}
+                  onToggleFavorite={(problemName) => toggleFavorite('problem', problemName)}
+                  showFavoritesOnly={showFavoritesOnly}
+                  onShowFavoritesChange={setShowFavoritesOnly}
+                />
+              </div>
+            </div>
+
+            <TabsContent value="problems">
+              {/* Problems List */}
+              <div className="space-y-3">
+                {filteredProblems.map((problem, index) => {
                   const isCompleted = completedProblems.has(problem.name);
                   const isProblemFavorite = isFavorite('problem', problem.name);
                   return (
                     <Card 
                       key={`${topic.id}-${index}`}
-                      className={`group hover:shadow-md transition-all duration-200 bg-white ${
+                       className={`group hover:shadow-md transition-all duration-200 ${
                         isCompleted ? 'border-primary/20' : 'hover:border-primary/20'
                       }`}
                     >
@@ -228,15 +241,23 @@ const DSATopic = () => {
               })}
             </div>
 
-          {/* Back Button */}
-          <div className="mt-12 text-center">
-            <Link to="/dsa-sheet">
-              <Button variant="outline" className="gap-2">
-                <ChevronLeft className="w-4 h-4" />
-                Back to DSA Sheet
-              </Button>
-            </Link>
-          </div>
+              {/* Back Button */}
+              <div className="mt-12 text-center">
+                <Link to="/dsa-sheet">
+                  <Button variant="outline" className="gap-2">
+                    <ChevronLeft className="w-4 h-4" />
+                    Back to DSA Sheet
+                  </Button>
+                </Link>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="visualizer">
+              <div className="mt-2">
+                <DSATopicVisualizerTab topicId={topic.id} />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </Container>
     </div>
